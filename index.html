@@ -666,262 +666,7 @@ button[onclick^="show"] {
   background-color: #007bff;
   color: #fff;
 }
-/* ================= SINGLE ID CARD (MODAL) ================= */
 
-.id-card {
-  width: 340px;
-  background: linear-gradient(135deg,#4f46e5,#06b6d4);
-  padding: 10px;
-  border-radius: 16px;
-}
-
-.id-front, .id-back {
-  background: white;
-  border-radius: 12px;
-  padding: 10px;
-  margin-bottom: 6px;
-}
-
-.id-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 2px solid #4f46e5;
-  padding-bottom: 6px;
-}
-
-.school-logo {
-  width: 45px;
-  height: 45px;
-}
-
-.school-info h3 {
-  margin: 0;
-  font-size: 14px;
-}
-
-.school-info small {
-  font-size: 10px;
-  color: #555;
-}
-
-.id-body {
-  text-align: center;
-}
-
-.id-photo {
-  width: 90px;
-  height: 90px;
-  border-radius: 12px;
-  border: 3px solid #4f46e5;
-  object-fit: cover;
-  margin: 6px auto;
-}
-
-.id-body h4 {
-  font-size: 14px;
-  margin: 3px 0;
-}
-
-.id-body p {
-  font-size: 11px;
-  color: #555;
-}
-
-.id-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.id-grid div {
-  background: #eef2ff;
-  padding: 5px;
-  border-radius: 6px;
-  font-size: 11px;
-}
-
-.id-grid span {
-  display: block;
-  font-size: 9px;
-  font-weight: bold;
-  color: #4f46e5;
-}
-
-.qr-box {
-  display: flex;
-  justify-content: center;
-  margin-top: 6px;
-}
-
-.id-footer {
-  text-align: center;
-  font-size: 10px;
-  margin-top: 5px;
-  color: #555;
-}
-
-.print-btn {
-  width: 100%;
-  border: none;
-  background: #22c55e;
-  color: white;
-  padding: 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.print-btn:hover {
-  background: #16a34a;
-}
-
-
-/* ================= BULK ID CARD ================= */
-
-.id-card-print {
-  width: 8.6cm;
-  height: 5.6cm;
-  background: linear-gradient(135deg,#4f46e5,#06b6d4);
-  padding: 4px;
-  border-radius: 10px;
-  box-sizing: border-box;
-  display: flex;
-  gap: 4px;
-  page-break-inside: avoid;
-  break-inside: avoid;
-  flex-direction: column; /* ensures front/back stack vertically */
-}
-
-.id-card-print .id-front,
-.id-card-print .id-back {
-  width: 100%; /* take full width of card */
-  background: #fff;
-  border-radius: 8px;
-  padding: 5px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-  margin-bottom: 4px; /* spacing between front/back */
-}
-
-.id-card-print .id-header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border-bottom: 1px solid #4f46e5;
-  padding-bottom: 3px;
-}
-
-.id-card-print .school-logo {
-  width: 22px;
-  height: 22px;
-}
-
-.id-card-print .id-photo {
-  width: 46px;
-  height: 46px;
-  border-radius: 6px;
-  border: 2px solid #4f46e5;
-  object-fit: cover;
-  margin: 4px auto;
-}
-
-.id-card-print h5 {
-  font-size: 10px;
-  margin: 2px 0;
-  text-align: center;
-  line-height: 1.2;
-}
-
-.id-card-print p {
-  font-size: 9px;
-  margin: 1px 0;
-  text-align: center;
-  color: #555;
-  line-height: 1.2;
-}
-
-.id-mini-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3px;
-  font-size: 8px;
-}
-
-.id-mini-grid div {
-  background: #eef2ff;
-  border-radius: 4px;
-  padding: 2px;
-}
-
-.id-mini-grid span {
-  display: block;
-  font-size: 7px;
-  font-weight: bold;
-  color: #4f46e5;
-}
-
-.return-text {
-  font-size: 7px;
-  text-align: center;
-  border-top: 1px dashed #999;
-  padding-top: 2px;
-  margin-top: 2px;
-}
-
-
-/* ================= BULK PRINT LAYOUT ================= */
-
-.id-print-area {
-  display: none;
-}
-
-@media print {
-
-  @page {
-    size: A4;
-    margin: 8mm;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  .id-print-area,
-  .id-print-area * {
-    visibility: visible;
-  }
-
-  .id-print-area {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2 cards per row */
-    grid-auto-rows: min-content; /* auto height for each card */
-    gap: 10mm; /* spacing between cards */
-    justify-items: center;
-    align-items: start;
-  }
-
-  .id-card-print {
-    width: 8.6cm;
-    height: auto; /* let front/back stack naturally */
-    flex-direction: column;
-  }
-
-  .page-break {
-    page-break-after: always;
-  }
-
-  /* hide buttons and modal during print */
-  .print-btn,
-  .close,
-  .bulk-print-btn {
-    display: none !important;
-  }
-}
 
 .report-button {
     width: fit-content;
@@ -1590,7 +1335,7 @@ button[onclick^="show"] {
 /* ===== BASE CHART STYLE (shared look) ===== */
 .chart-container {
   flex: 1;
-  width: 100%;
+  width: 1000%;
   max-width: 420px;
   margin: 20px auto;
   background: #ffffff;
@@ -1606,7 +1351,7 @@ button[onclick^="show"] {
 
 /* ===== GRADE CHART SPECIFIC STYLE ===== */
 .grade-chart-box canvas {
-  height: 320px !important;   /* taller chart */
+  height: 240px !important;   /* taller chart */
 }
 
 /* ===== GENDER CHART SPECIFIC STYLE ===== */
@@ -1716,16 +1461,7 @@ button[onclick^="show"] {
   overflow: hidden;
 }
 
-/* 🎈 Floating glow */
-.floating-bg {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(255,255,255,0.4), transparent);
-  top: -50px;
-  right: -50px;
-  animation: floatGlow 6s infinite ease-in-out;
-}
+
 
 @keyframes floatGlow {
   0%,100% { transform: translateY(0); }
@@ -2345,6 +2081,21 @@ button[onclick^="show"] {
   .school-right-logo img {
     width: 50px;
     height: 50px;
+  }
+}
+/* 📱 SMALL SCREEN FIX */
+@media (max-width: 768px) {
+
+  #reportsControls {
+    bottom:55px;
+    width:95vw;
+    left:50%;
+    transform:translateX(-50%);
+  }
+
+  #reportsControls button {
+    width:40%;           /* stack buttons */
+    min-width:unset;
   }
 }
 </style>
@@ -3150,26 +2901,30 @@ button[onclick^="show"] {
     <!-- ================= REPORTS CONTROLS (NOW ABOVE BUTTON) ================= -->
     <div
       id="reportsControls"
-      style="
-        display:none;
-        position:absolute;
-        bottom:60px; /* 👈 opens ABOVE button */
-        left:100%;
-        transform:translateX(-100%);
-        flex-wrap:wrap;
-        justify-content:center;
-        gap:15px;
-        width:400px;
-        padding:20px;
+  style="
+    display:none;
+    position:absolute;
 
-        background:url('https://i.imgur.com/85Aq6A9.jpeg');
-        background-size:cover;
-        background-position:center;
+    bottom:60px;
+    left:50%;
+    transform:translateX(-50%);
 
-        border-radius:14px;
-        box-shadow:0 6px 18px rgba(0,0,0,0.2);
-        z-index:1000;
-      ">
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:12px;
+
+    width:90vw;          /* responsive width */
+    max-width:420px;     /* limit on large screens */
+    padding:15px;
+
+    background:url('https://i.imgur.com/XV57Zya.jpeg');
+    background-size:cover;
+    background-position:center;
+
+    border-radius:14px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.25);
+    z-index:1000;
+  ">
 
       <!-- Marks Section -->
       <button
@@ -4796,15 +4551,14 @@ Rasm Does It All – One Click and You’re Done!.</span>
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
         import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
   const firebaseConfig = {
-  apiKey: "AIzaSyCLPVPWffyUuf6uWUw9zF5AcCyDV9w5Xjg",
-  authDomain: "nairobi-yetu.firebaseapp.com",
-  databaseURL: "https://nairobi-yetu-default-rtdb.firebaseio.com",
-  projectId: "nairobi-yetu",
-  storageBucket: "nairobi-yetu.firebasestorage.app",
-  messagingSenderId: "986907903758",
-  appId: "1:986907903758:web:e809b809610d5ef5bcb95f",
-  measurementId: "G-0WS8ECZLF5"
-  };
+  apiKey: "AIzaSyCjXkrnVOiU24UGPXi7s77baCaDYDEQdpQ",
+  authDomain: "kisiiyetu-66801.firebaseapp.com",
+  projectId: "kisiiyetu-66801",
+  storageBucket: "kisiiyetu-66801.firebasestorage.app",
+  messagingSenderId: "300386869734",
+  appId: "1:300386869734:web:c37487e7409ce4dee13627",
+  measurementId: "G-TZBWX84SCT"
+};
 const app = initializeApp(firebaseConfig);
 
 // ✅ renamed from database → db
@@ -4814,16 +4568,28 @@ const db = getDatabase(app);
 const learnersRef = ref(db, "learners")
 // 🔹 Auto-generate age based on grade (random within range)
 function getRandomAgeByGrade(grade) {
-    switch (grade) {
-        case '4': case '4A': case '4B': case '4C':
-            return Math.floor(Math.random() * 2) + 9; // 9-10
-        case '5': case '5A': case '5B': case '5C':
-            return Math.floor(Math.random() * 2) + 10; // 10-11
-        case '6': case '6A': case '6B': case '6C':
-            return Math.floor(Math.random() * 2) + 11; // 11-12
-        default:
-            return '';
-    }
+   switch (grade) {
+    case '1': case '1A': case '1B': case '1C':
+        return Math.floor(Math.random() * 2) + 6; // 6-7
+
+    case '2': case '2A': case '2B': case '2C':
+        return Math.floor(Math.random() * 2) + 7; // 7-8
+
+    case '3': case '3A': case '3B': case '3C':
+        return Math.floor(Math.random() * 2) + 8; // 8-9
+
+    case '4': case '4A': case '4B': case '4C':
+        return Math.floor(Math.random() * 2) + 9; // 9-10
+
+    case '5': case '5A': case '5B': case '5C':
+        return Math.floor(Math.random() * 2) + 10; // 10-11
+
+    case '6': case '6A': case '6B': case '6C':
+        return Math.floor(Math.random() * 2) + 11; // 11-12
+
+    default:
+        return '';
+}
 }
 
 // 🔹 Compute dynamic age based on grade and admission year
@@ -4832,19 +4598,37 @@ function getAgeByGradeAndAdmissionYear(grade, admissionYear) {
     const yearDiff = currentYear - admissionYear;
     let baseAge;
 
-    switch (grade) {
-        case '4': case '4A': case '4B': case '4C':
-            baseAge = 9;
-            break;
-        case '5': case '5A': case '5B': case '5C':
-            baseAge = 10;
-            break;
-        case '6': case '6A': case '6B': case '6C':
-            baseAge = 11;
-            break;
-        default:
-            return '';
-    }
+   switch (grade) {
+
+    // ✅ LOWER PRIMARY
+    case '1': case '1A': case '1B': case '1C':
+        baseAge = 6;
+        break;
+
+    case '2': case '2A': case '2B': case '2C':
+        baseAge = 7;
+        break;
+
+    case '3': case '3A': case '3B': case '3C':
+        baseAge = 8;
+        break;
+
+    // ✅ UPPER PRIMARY
+    case '4': case '4A': case '4B': case '4C':
+        baseAge = 9;
+        break;
+
+    case '5': case '5A': case '5B': case '5C':
+        baseAge = 10;
+        break;
+
+    case '6': case '6A': case '6B': case '6C':
+        baseAge = 11;
+        break;
+
+    default:
+        return '';
+}
 
     return baseAge + yearDiff;
 }
@@ -12145,9 +11929,6 @@ function generateSubjectRankingPerLearner(selectedGrade, selectedPeriod) {
         }, 200);
     }
 
-    // ===============================
-    // ✅ YOUR 5 SUBJECTS (COLUMN MAPPED)
-    // ===============================
     const subjectKeys = [
         { name: "English", col: 6 },
         { name: "Kiswahili", col: 13 },
@@ -12165,14 +11946,20 @@ function generateSubjectRankingPerLearner(selectedGrade, selectedPeriod) {
             <p>Year: ${year} | Grade: ${selectedGrade} | Exam: ${selectedPeriod}</p>
         </div>
 
-        <table style="width:100%; border-collapse:collapse; margin-top:15px;">
+        <table style="
+            width:100%;
+            border-collapse:collapse;
+            margin-top:15px;
+            border:3px solid black; /* 🔥 strong outer border */
+            font-size:15px;
+        ">
             <thead>
                 <tr style="background:#f2f2f2;">
-                    <th>No.</th>
-                    <th>Learner</th>
-                    <th>Subject</th>
-                    <th>Score</th>
-                    <th>Rank</th>
+                    <th style="border:2px solid black; padding:10px;">No.</th>
+                    <th style="border:2px solid black; padding:10px;">Learner</th>
+                    <th style="border:2px solid black; padding:10px;">Subject</th>
+                    <th style="border:2px solid black; padding:10px;">Score</th>
+                    <th style="border:2px solid black; padding:10px;">Rank</th>
                 </tr>
             </thead>
             <tbody>
@@ -12187,29 +11974,24 @@ function generateSubjectRankingPerLearner(selectedGrade, selectedPeriod) {
 
         const learnerName = row.cells[1].textContent;
 
-        // ===============================
-        // EXTRACT SUBJECT SCORES
-        // ===============================
         const scores = subjectKeys.map(s => ({
             subject: s.name,
             score: parseFloat(row.cells[s.col]?.textContent) || 0
         }));
 
-        // Sort highest to lowest
         scores.sort((a, b) => b.score - a.score);
 
-        // Take top 5 (all subjects anyway but keeps structure safe)
         const topSubjects = scores.slice(0, 5);
 
         topSubjects.forEach((entry, index) => {
 
             html += `
                 <tr>
-                    <td>${index === 0 ? "1" : ""}</td>
-                    <td>${learnerName}</td>
-                    <td>${entry.subject}</td>
-                    <td>${entry.score}</td>
-                    <td>${index + 1}</td>
+                    <td style="border:2px solid black; padding:8px;">${index === 0 ? "1" : ""}</td>
+                    <td style="border:2px solid black; padding:8px;">${learnerName}</td>
+                    <td style="border:2px solid black; padding:8px;">${entry.subject}</td>
+                    <td style="border:2px solid black; padding:8px;">${entry.score}</td>
+                    <td style="border:2px solid black; padding:8px;">${index + 1}</td>
                 </tr>
             `;
         });
@@ -12226,6 +12008,7 @@ function generateSubjectRankingPerLearner(selectedGrade, selectedPeriod) {
                 color:white;
                 border:none;
                 border-radius:4px;
+                font-weight:bold;
             ">
                 Print Report
             </button>
@@ -12235,7 +12018,9 @@ function generateSubjectRankingPerLearner(selectedGrade, selectedPeriod) {
     const reportOutput = document.getElementById("reportOutput");
     reportOutput.innerHTML = html;
 
+    // 🔥 AUTO SCROLL
     smoothScrollTo(reportOutput);
+
 
     // 🎉 Celebration Styles
     if (!document.getElementById("perfCelebrationStyles")) {
