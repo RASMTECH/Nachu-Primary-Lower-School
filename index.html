@@ -635,7 +635,7 @@ button[onclick^="show"] {
 /* General report/print button styles */
 .report-button,
 .print-button {
-  width: 45%;          /* reduced width */
+  width: 30%;          /* reduced width */
   margin-bottom: 12px;
   display: block;      /* ensures stacking */
   text-align: left;    /* keeps content aligned left */
@@ -2098,6 +2098,53 @@ button[onclick^="show"] {
     min-width:unset;
   }
 }
+
+/* TEXT */
+.vision-text {
+  flex:1;
+  text-align:center;
+  line-height:1.5;
+}
+
+/* AVATAR BASE */
+.avatar {
+  width:55px;
+  height:55px;
+  object-fit:contain;
+  animation: float 3s ease-in-out infinite;
+}
+
+/* LEFT AVATAR WAVE */
+.avatar-left {
+  animation: float 3s ease-in-out infinite, wave 2s infinite;
+}
+
+/* RIGHT AVATAR DELAY (more natural) */
+.avatar-right {
+  animation: float 3s ease-in-out infinite 0.5s, wave 2.5s infinite 0.3s;
+}
+
+/* FLOAT (alive breathing effect) */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+/* WAVE (greeting effect) */
+@keyframes wave {
+  0% { transform: rotate(0deg); }
+  20% { transform: rotate(12deg); }
+  40% { transform: rotate(-8deg); }
+  60% { transform: rotate(12deg); }
+  80% { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* HOVER = GREETING REACTION */
+#announcement:hover .avatar {
+  transform: scale(1.15);
+  filter: brightness(1.2);
+}
 </style>
 
 </head>
@@ -2165,7 +2212,7 @@ button[onclick^="show"] {
 
     <!-- 🏫 RIGHT LOGO -->
     <div class="school-right-logo">
-      <img src="https://i.imgur.com/UrySmf2.png" alt="School Logo Right">
+      <img src="https://i.imgur.com/sIy1kDr.png" alt="School Logo Right">
     </div>
 
   </div>
@@ -2177,24 +2224,45 @@ button[onclick^="show"] {
   id="announcement"
   style="
     padding:10px 16px;
-    background-color:#ff4d4f;
+    background: linear-gradient(135deg, #ff4d4f, #ff7875);
     border:1px solid #d9363e;
     color:#fff;
-    border-radius:8px;
+    border-radius:12px;
     font-size:1rem;
     font-weight:600;
     box-shadow:0 4px 12px rgba(0,0,0,0.1);
-    display:inline-block;
-    text-align:center;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
     margin:20px auto;
+    max-width:750px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   "
-  onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.15)';"
-  onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';"
+  onmouseover="this.style.transform='translateY(-3px) scale(1.01)'; this.style.boxShadow='0 8px 18px rgba(0,0,0,0.2)';"
+  onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';"
 >
-  📢 <strong>Our Vision :</strong> 
-  To revolutionize school management through smart, reliable, and user-friendly technology that enhances learning outcomes and administrative excellence.
+
+  <!-- LEFT AVATAR -->
+  <img 
+    src="https://i.imgur.com/lntl5cx.png" 
+    class="avatar avatar-left"
+  >
+
+  <!-- CENTER TEXT -->
+  <div class="vision-text">
+    📢 <strong>Our Vision :</strong><br>
+    To revolutionize school management through smart, reliable, and user-friendly technology that enhances learning outcomes and administrative excellence.
+  </div>
+
+  <!-- RIGHT AVATAR -->
+  <img 
+    src="https://i.imgur.com/RiHbVCx.png" 
+    class="avatar avatar-right"
+  >
+
 </div>
+
 <!-- ================= SCHOOL DASHBOARD ================= -->
 <h2 style="
   background:#222;
@@ -4039,21 +4107,21 @@ Accuracy and Efficiency in Every Click.</span>
       <!-- ENGLISH -->
       <th>Eng</th>
       <th>Lang</th>
-      <th>Writing</th>
-      <th>Eng Total </th>
+      <th>Writ</th>
+      <th>Eng Tt </th>
       <th>Lev</th>
 
-      <th>Reading</th>
+      <th>Read</th>
       <th>Lev</th>
 
       <!-- KISWAHILI -->
-      <th>Kusikiliza</th>
+      <th>Kusik</th>
       <th>Lugha</th>
-      <th>Kuandika</th>
+      <th>Kuandi</th>
       <th>Kiswa</th>
       <th>Lev</th>
 
-      <th>Kusoma</th>
+      <th>Kus</th>
       <th>Lev</th>
 
       <!-- MATHEMATICS -->
@@ -4971,31 +5039,37 @@ let currentExamPeriod = "";
 
 function calculateTopStudents() {
 
+  const examPeriod =
+    document.getElementById("marksExamPeriodSelect")?.value ||
+    currentExamPeriod;
+
+  if (!examPeriod) {
+    console.warn("No exam period selected");
+    return;
+  }
+
   const studentTotals = [];
 
   allLearners.forEach(l => {
 
-    const exam = l.marks?.[currentExamPeriod];
+    const exam = l.marks?.[examPeriod];
     if (!exam) return;
 
-    // ✅ UPDATED TO 5 SUBJECTS ONLY
     const total =
-      (parseFloat(exam.eng) || 0) +
-      (parseFloat(exam.kiswahili) || 0) +
-      (parseFloat(exam.math) || 0) +
-      (parseFloat(exam.environment) || 0) +
-      (parseFloat(exam.creativeArt) || 0);
+      (+exam.eng_total || 0) +
+      (+exam.kus_total || 0) +
+      (+exam.math || 0) +
+      (+exam.env_total || 0) +
+      (+exam.ca || 0);
 
     studentTotals.push({
       name: l.name,
       grade: l.grade,
       total: total,
-      level: getPerformanceLevel(total) // assumes already updated for /500
+      level: getPerformanceLevel(total)
     });
-
   });
 
-  // ✅ sort highest first
   studentTotals.sort((a, b) => b.total - a.total);
 
   const top5 = studentTotals.slice(0, 5);
@@ -5005,13 +5079,7 @@ function calculateTopStudents() {
   const container = document.getElementById("topStudentsContent");
   if (!container) return;
 
-  const colors = [
-    "#4CAF50", // 1st
-    "#2196F3", // 2nd
-    "#FF9800", // 3rd
-    "#9C27B0", // 4th
-    "#F44336"  // 5th
-  ];
+  const colors = ["#4CAF50", "#2196F3", "#FF9800", "#9C27B0", "#F44336"];
 
   container.innerHTML = top5.length
     ? top5.map((s, i) => `
@@ -5396,16 +5464,27 @@ let topGradeGlobal = null;
 
 function calculateTopGrade() {
 
-  const selectedExam = document.getElementById("marksExamPeriodSelect")?.value;
+  // ===============================
+  // 🔥 SAFE EXAM PERIOD RESOLUTION
+  // ===============================
+  const select = document.getElementById("marksExamPeriodSelect");
+
+  const selectedExam =
+    select?.value ||
+    currentExamPeriod ||
+    localStorage.getItem("selectedExamPeriod");
+
   const container = document.getElementById("topGrade");
   if (!container) return;
 
-  if (!selectedExam) {
+  if (!selectedExam || selectedExam === "") {
     container.innerHTML = "<em>Select Exam Period</em>";
     return;
   }
 
-  // ✅ UPDATED FOR 5 SUBJECTS (TOTAL = 500)
+  // ===============================
+  // PERFORMANCE LEVELS (500 SCALE)
+  // ===============================
   const performanceLevels = [
     { level: "EE", desc: "Exceeds Expectations", min: 375, max: 500 },
     { level: "ME", desc: "Meets Expectations", min: 250, max: 374 },
@@ -5416,18 +5495,21 @@ function calculateTopGrade() {
   const gradeTotals = {};
   const gradeCounts = {};
 
+  // ===============================
+  // 🔥 COMPUTE GRADE TOTALS
+  // ===============================
   allLearners.forEach(l => {
-    if (!l.marks || !l.marks[selectedExam]) return;
 
-    const exam = l.marks[selectedExam];
+    const exam = l.marks?.[selectedExam];
+    if (!exam) return;
 
-    // ✅ NEW 5 SUBJECT TOTAL
+    // FIXED SUBJECT MAPPING (NO MORE ERRORS)
     const total =
-      (parseFloat(exam.eng) || 0) +
-      (parseFloat(exam.kiswahili) || 0) +
-      (parseFloat(exam.math) || 0) +
-      (parseFloat(exam.environment) || 0) +
-      (parseFloat(exam.creativeArt) || 0);
+      (+exam.eng_total || 0) +
+      (+exam.kus_total || 0) +
+      (+exam.math || 0) +
+      (+exam.env_total || 0) +
+      (+exam.ca || 0);
 
     const grade = l.grade;
 
@@ -5435,9 +5517,26 @@ function calculateTopGrade() {
     gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
   });
 
-  const gradeAverages = Object.keys(gradeTotals).map(g => {
+  // ===============================
+  // EMPTY CHECK
+  // ===============================
+  const grades = Object.keys(gradeTotals);
+
+  if (!grades.length) {
+    container.innerHTML = "<em>No Exam Data</em>";
+    return;
+  }
+
+  // ===============================
+  // AVERAGES
+  // ===============================
+  const gradeAverages = grades.map(g => {
+
     const avg = gradeTotals[g] / gradeCounts[g];
-    const perf = performanceLevels.find(p => avg >= p.min && avg <= p.max);
+
+    const perf = performanceLevels.find(p =>
+      avg >= p.min && avg <= p.max
+    );
 
     return {
       grade: g,
@@ -5447,20 +5546,17 @@ function calculateTopGrade() {
     };
   });
 
-  if (!gradeAverages.length) {
-    container.innerHTML = "<em>No Exam Data</em>";
-    return;
-  }
-
   gradeAverages.sort((a, b) => b.average - a.average);
 
-  // 🏆 STORE TOP GRADE
   topGradeGlobal = gradeAverages[0];
 
   const maxAvg = gradeAverages[0].average;
 
   const colors = ["#FFD700", "#C0C0C0", "#CD7F32"];
 
+  // ===============================
+  // RENDER UI
+  // ===============================
   container.innerHTML = gradeAverages.map((g, index) => {
 
     const badgeColor = colors[index] || "#bbb";
@@ -5474,11 +5570,13 @@ function calculateTopGrade() {
         padding:10px 15px;
         margin-bottom:8px;
         border-radius:8px;
-        background-color: ${index % 2 === 0 ? "#f9f9f9" : "#f0f4f8"};
-        color: #333;
+        background-color:${index % 2 === 0 ? "#f9f9f9" : "#f0f4f8"};
+        color:#333;
         box-shadow:0 1px 3px rgba(0,0,0,0.05);
       ">
+
         <div style="display:flex; align-items:center; gap:10px;">
+
           <div style="
             width:24px;
             height:24px;
@@ -5495,6 +5593,7 @@ function calculateTopGrade() {
             <strong>${g.grade}</strong> - ${g.average.toFixed(1)} Avg<br>
             <small style="color:#555;">${g.level} - ${g.description}</small>
           </div>
+
         </div>
 
         <div style="
@@ -5512,11 +5611,11 @@ function calculateTopGrade() {
             border-radius:5px;
           "></div>
         </div>
+
       </div>
     `;
   }).join("") + `
 
-  <!-- 🏆 CERTIFICATE BUTTON -->
   <div style="text-align:center; margin-top:15px;">
     <button onclick="generateGradeCertificate()" style="
       padding:12px 20px;
@@ -6763,13 +6862,14 @@ function updateTotalsAndAverages(sums, count) {
 }
 
 // ===============================
-// 🎯 FILTER TABLE (CLEAN FIXED)
+// 🎯 FILTER TABLE (FIXED - NO COLUMN INDEXING)
 // ===============================
 filterMarksGrade.addEventListener("change", () => {
+
   const selectedGrade = filterMarksGrade.value;
   const rows = marksTableBody.querySelectorAll("tr");
 
-  // ✅ ONLY MAIN SUBJECTS
+  // ✅ CLEAN SUMS
   let sums = {
     eng_total: 0,
     kus_total: 0,
@@ -6783,44 +6883,57 @@ filterMarksGrade.addEventListener("change", () => {
   let filteredCount = 0;
 
   rows.forEach(row => {
+
     const rowGrade = row.getAttribute("data-grade");
+    const learnerKey = row.getAttribute("data-key");
+
     const visible = selectedGrade === "" || rowGrade === selectedGrade;
 
     row.style.display = visible ? "" : "none";
 
-    if (visible) {
-      const cells = row.querySelectorAll("td");
+    if (!visible) return;
 
-      // ✅ ONLY REQUIRED COLUMNS
-      const eng_total = parseFloat(cells[6].textContent) || 0;
-      const kus_total = parseFloat(cells[13].textContent) || 0;
-      const math = parseFloat(cells[17].textContent) || 0;
-      const env_total = parseFloat(cells[21].textContent) || 0;
-      const ca = parseFloat(cells[23].textContent) || 0;
+    // ===============================
+    // 🔥 GET ORIGINAL DATA (NO DOM SCRAPING)
+    // ===============================
+    const learner = window.loadedMarksLearners?.find(l => l.key === learnerKey);
+    const marks = learner?.marks;
 
-      const totalMarks = parseFloat(cells[25].textContent) || 0;
+    if (!marks) return;
 
-      // ✅ SUMS (ONLY MAIN SUBJECTS)
-      sums.eng_total += eng_total;
-      sums.kus_total += kus_total;
-      sums.math += math;
-      sums.env_total += env_total;
-      sums.ca += ca;
+    const eng_total = +marks.eng_total || 0;
+    const kus_total = +marks.kus_total || 0;
+    const math = +marks.math || 0;
+    const env_total = +marks.env_total || 0;
+    const ca = +marks.ca || 0;
 
-      sums.totalMarks += totalMarks;
+    const totalMarks =
+      eng_total + kus_total + math + env_total + ca;
 
-      // ✅ CORRECT LEVEL CALCULATION (NO reading, NO kus, etc.)
-      sums.totalLevel +=
-        getLevel(eng_total) +
-        getLevel(kus_total) +
-        getLevel(math) +
-        getLevel(env_total) +
-        getLevel(ca);
+    // ===============================
+    // 🔥 SUMS (SAFE + ACCURATE)
+    // ===============================
+    sums.eng_total += eng_total;
+    sums.kus_total += kus_total;
+    sums.math += math;
+    sums.env_total += env_total;
+    sums.ca += ca;
 
-      filteredCount++;
-    }
+    sums.totalMarks += totalMarks;
+
+    sums.totalLevel +=
+      getLevel(eng_total) +
+      getLevel(kus_total) +
+      getLevel(math) +
+      getLevel(env_total) +
+      getLevel(ca);
+
+    filteredCount++;
   });
 
+  // ===============================
+  // 📊 UPDATE UI
+  // ===============================
   updateTotalsAndAverages(sums, filteredCount);
   renderSubjectAverages(sums, filteredCount);
 });
@@ -8666,12 +8779,8 @@ function generateReport(reportType, selectedGrade, examPeriod) {
     }
   }
 
-
 function generateGenderPerformance(selectedGrade, selectedExamPeriod) {
 
-  // ===============================
-  // 🔹 AUTO SCROLL HELPER
-  // ===============================
   function smoothScrollTo(el) {
     setTimeout(() => {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -8687,221 +8796,230 @@ function generateGenderPerformance(selectedGrade, selectedExamPeriod) {
     return;
   }
 
-  // ===============================
-  // 🔹 LEVEL (1–4 SYSTEM)
-  // ===============================
+  const normalize = v =>
+    (v || "").toString().trim().toLowerCase().replace(/\s+/g, "");
+
   function getLevel(score) {
-    score = parseInt(score) || 0;
-    if (score >= 90) return 4;
+    score = parseFloat(score) || 0;
+    if (score >= 70) return 4;
     if (score >= 50) return 3;
     if (score >= 30) return 2;
     return 1;
   }
 
-  function getTotalPoints(entry) {
-    return (
-      getLevel(entry.english) +
-      getLevel(entry.math) +
-      getLevel(entry.kiswahili) +
-      getLevel(entry.environment) +
-      getLevel(entry.creativeArts)
-    );
-  }
-
-  const gradeValue = selectedGrade || "All Grades";
-  const examPeriodValue = selectedExamPeriod || "All Periods";
-
-  // ===============================
-  // 🔹 LOAD LEARNERS
-  // ===============================
   const learners = Array.from(learnersTableBody.querySelectorAll("tr")).map(row => {
     const cells = row.querySelectorAll("td");
     return {
       name: cells[3]?.textContent.trim(),
-      gender: cells[4]?.textContent.trim().toLowerCase(),
+      gender: (cells[4]?.textContent.trim() || "").toLowerCase(),
       grade: cells[5]?.textContent.trim()
     };
   });
 
-  // ===============================
-  // 🔹 LOAD MARKS (UPDATED 5 SUBJECTS)
-  // ===============================
   const marks = Array.from(marksTableBody.querySelectorAll("tr"))
     .filter(row => {
-      const grade = row.getAttribute("data-grade");
-      const period = row.getAttribute("data-exam-period");
 
-      return (!selectedGrade || grade.startsWith(selectedGrade.slice(0, -1))) &&
-             (!selectedExamPeriod || period === selectedExamPeriod);
+      const grade = normalize(row.getAttribute("data-grade"));
+      const period = normalize(row.getAttribute("data-exam-period"));
+
+      const g = normalize(selectedGrade);
+      const p = normalize(selectedExamPeriod);
+
+      const gradeMatch =
+        !g ||
+        grade === g ||
+        grade.includes(g) ||
+        g.includes(grade);
+
+      const periodMatch = !p || period === p;
+
+      return gradeMatch && periodMatch;
     })
     .map(row => {
-      const cells = row.querySelectorAll("td");
 
-      const entry = {
-        learner: cells[1]?.textContent.trim(),
-        grade: cells[2]?.textContent.trim(),
+      const c = row.querySelectorAll("td");
 
-        english: parseInt(cells[3]?.textContent) || 0,
-        math: parseInt(cells[5]?.textContent) || 0,
-        kiswahili: parseInt(cells[7]?.textContent) || 0,
-        environment: parseInt(cells[21]?.textContent) || 0,
-        creativeArts: parseInt(cells[23]?.textContent) || 0,
+      return {
+        learner: c[1]?.textContent.trim(),
+        grade: c[2]?.textContent.trim(),
+
+        eng: +c[3]?.textContent || 0,
+        lang: +c[4]?.textContent || 0,
+        wr: +c[5]?.textContent || 0,
+        eng_total: +c[6]?.textContent || 0,
+        eng_totalLev: +c[7]?.textContent || 0,
+        reading: +c[8]?.textContent || 0,
+        readingLev: +c[9]?.textContent || 0,
+
+        kusikiza: +c[10]?.textContent || 0,
+        lugha: +c[11]?.textContent || 0,
+        kuandi: +c[12]?.textContent || 0,
+        kus_total: +c[13]?.textContent || 0,
+        kus_totalLev: +c[14]?.textContent || 0,
+        kus: +c[15]?.textContent || 0,
+        kusLev: +c[16]?.textContent || 0,
+
+        math: +c[17]?.textContent || 0,
+        mathLev: +c[18]?.textContent || 0,
+
+        envir: +c[19]?.textContent || 0,
+        cre: +c[20]?.textContent || 0,
+        env_total: +c[21]?.textContent || 0,
+        env_totalLev: +c[22]?.textContent || 0,
+
+        ca: +c[23]?.textContent || 0,
+        caLev: +c[24]?.textContent || 0
       };
-
-      entry.totalMarks =
-        entry.english +
-        entry.math +
-        entry.kiswahili +
-        entry.environment +
-        entry.creativeArts;
-
-      return entry;
     });
 
-  // ===============================
-  // 🔹 GROUP BY GENDER
-  // ===============================
   const genderPerformance = { male: [], female: [] };
 
-  marks.forEach(entry => {
-    const learner = learners.find(l => l.name === entry.learner);
-    if (learner) {
-      entry.totalPoints = getTotalPoints(entry);
-      genderPerformance[learner.gender]?.push(entry);
-    }
+  marks.forEach(m => {
+
+    const learner = learners.find(l => l.name === m.learner);
+    if (!learner) return;
+
+    const totalMarks =
+      m.eng_total +
+      m.kus_total +
+      m.math +
+      m.env_total +
+      m.ca;
+
+    const totalPoints =
+      getLevel(m.eng_total) +
+      getLevel(m.reading) +
+      getLevel(m.kus_total) +
+      getLevel(m.kus) +
+      getLevel(m.math) +
+      getLevel(m.env_total) +
+      getLevel(m.ca);
+
+    const entry = {
+      ...m,
+      totalMarks,
+      totalPoints,
+      grade: learner.grade
+    };
+
+    genderPerformance[learner.gender]?.push(entry);
   });
 
-  genderPerformance.male.sort((a, b) => b.totalMarks - a.totalMarks);
-  genderPerformance.female.sort((a, b) => b.totalMarks - a.totalMarks);
-
-  const top5Male = genderPerformance.male.slice(0, 5);
-  const top5Female = genderPerformance.female.slice(0, 5);
-
-  // ===============================
-  // 🔹 TABLE BUILDER (UPDATED)
-  // ===============================
-  function createTable(data, gender, top5) {
+  function build(data, gender) {
 
     if (!data.length) {
-      return `<h3 style="color:red;">No ${gender} learners found for selected criteria.</h3>`;
+      return `<h3 style="color:red;">No ${gender} data found</h3>`;
     }
 
     const color = gender === "male" ? "blue" : "purple";
 
+    const borderStyle = "border:3px solid black; padding:4px; text-align:center;";
+
     const totals = {
-      english: 0,
-      math: 0,
-      kiswahili: 0,
-      environment: 0,
-      creativeArts: 0,
+      eng: 0, lang: 0, wr: 0,
+      eng_total: 0, reading: 0,
+      kusikiza: 0, lugha: 0, kuandi: 0,
+      kus_total: 0, kus: 0,
+      math: 0, envir: 0, cre: 0,
+      env_total: 0, ca: 0,
       totalMarks: 0,
       totalPoints: 0
     };
 
     let html = `
-      <div id="${gender}-section" style="margin-top:40px;">
-      <h2 style="text-align:center; color:${color};">${gender.toUpperCase()} LEARNERS REPORT</h2>
+    <div id="${gender}-section">
+      <h2 style="color:${color};text-align:center">${gender.toUpperCase()} REPORT</h2>
 
-      <table style="width:100%; border-collapse:collapse; font-size:15px;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
-          <tr style="background:#f4f4f4;">
-            <th>No.</th>
-            <th>Name</th>
-            <th>Grade</th>
+          <tr style="background:#d9edf7;">
+            <th style="${borderStyle}">No</th>
+            <th style="${borderStyle}">Name</th>
+            <th style="${borderStyle}">Grade</th>
 
-            <th>Eng</th><th>Lev</th>
-            <th>Math</th><th>Lev</th>
-            <th>Kisw</th><th>Lev</th>
-            <th>Env</th><th>Lev</th>
-            <th>C/A</th><th>Lev</th>
+            <th style="${borderStyle}">Eng</th><th style="${borderStyle}">L</th><th style="${borderStyle}">Wr</th><th style="${borderStyle}">E.T</th><th style="${borderStyle}">EL</th>
+            <th style="${borderStyle}">Read</th><th style="${borderStyle}">RL</th>
 
-            <th>Total</th>
-            <th>Points</th>
+            <th style="${borderStyle}">KisK</th><th style="${borderStyle}">L</th><th style="${borderStyle}">Wr</th><th style="${borderStyle}">K.T</th><th style="${borderStyle}">KL</th>
+            <th style="${borderStyle}">Kis</th><th style="${borderStyle}">KL</th>
+
+            <th style="${borderStyle}">Math</th><th style="${borderStyle}">ML</th>
+
+            <th style="${borderStyle}">Env</th><th style="${borderStyle}">Cre</th><th style="${borderStyle}">EnvT</th><th style="${borderStyle}">EnvL</th>
+
+            <th style="${borderStyle}">CA</th><th style="${borderStyle}">CAL</th>
+
+            <th style="${borderStyle}">Total</th><th style="${borderStyle}">Points</th>
           </tr>
         </thead>
         <tbody>`;
 
-    data.forEach((entry, index) => {
-
-      const isTop = top5.find(t => t.learner === entry.learner);
-      const rowStyle = isTop ? "background:#FFD700;font-weight:bold;" : "";
+    data.forEach((m, i) => {
 
       html += `
-        <tr style="${rowStyle}">
-          <td>${index + 1}</td>
-          <td>${entry.learner}</td>
-          <td>${entry.grade}</td>
+      <tr>
+        <td style="${borderStyle}">${i + 1}</td>
+        <td style="${borderStyle}">${m.learner}</td>
+        <td style="${borderStyle}">${m.grade}</td>
 
-          <td>${entry.english}</td><td>${getLevel(entry.english)}</td>
-          <td>${entry.math}</td><td>${getLevel(entry.math)}</td>
-          <td>${entry.kiswahili}</td><td>${getLevel(entry.kiswahili)}</td>
-          <td>${entry.environment}</td><td>${getLevel(entry.environment)}</td>
-          <td>${entry.creativeArts}</td><td>${getLevel(entry.creativeArts)}</td>
+        <td style="${borderStyle}">${m.eng}</td><td style="${borderStyle}">${m.lang}</td><td style="${borderStyle}">${m.wr}</td><td style="${borderStyle}">${m.eng_total}</td><td style="${borderStyle}">${m.eng_totalLev}</td>
+        <td style="${borderStyle}">${m.reading}</td><td style="${borderStyle}">${m.readingLev}</td>
 
-          <td><strong>${entry.totalMarks}</strong></td>
-          <td><strong>${entry.totalPoints}</strong></td>
-        </tr>`;
+        <td style="${borderStyle}">${m.kusikiza}</td><td style="${borderStyle}">${m.lugha}</td><td style="${borderStyle}">${m.kuandi}</td><td style="${borderStyle}">${m.kus_total}</td><td style="${borderStyle}">${m.kus_totalLev}</td>
+        <td style="${borderStyle}">${m.kus}</td><td style="${borderStyle}">${m.kusLev}</td>
 
-      totals.english += entry.english;
-      totals.math += entry.math;
-      totals.kiswahili += entry.kiswahili;
-      totals.environment += entry.environment;
-      totals.creativeArts += entry.creativeArts;
-      totals.totalMarks += entry.totalMarks;
-      totals.totalPoints += entry.totalPoints;
+        <td style="${borderStyle}">${m.math}</td><td style="${borderStyle}">${m.mathLev}</td>
+
+        <td style="${borderStyle}">${m.envir}</td><td style="${borderStyle}">${m.cre}</td><td style="${borderStyle}">${m.env_total}</td><td style="${borderStyle}">${m.env_totalLev}</td>
+
+        <td style="${borderStyle}">${m.ca}</td><td style="${borderStyle}">${m.caLev}</td>
+
+        <td style="${borderStyle}"><b>${m.totalMarks}</b></td>
+        <td style="${borderStyle}"><b>${m.totalPoints}</b></td>
+      </tr>`;
+
+      for (let k in totals) {
+        if (m[k] !== undefined) totals[k] += m[k];
+      }
     });
 
-    const count = data.length;
-
     html += `
-      <tr style="background:yellow;font-weight:bold;">
-        <td colspan="3">Totals</td>
+      <tr style="font-weight:bold;background:#ffe082;">
+        <td colspan="3" style="${borderStyle}">TOTAL</td>
+        <td style="${borderStyle}">${totals.eng}</td><td style="${borderStyle}"></td>
+        <td style="${borderStyle}">${totals.wr}</td><td style="${borderStyle}">${totals.eng_total}</td><td style="${borderStyle}"></td>
+        <td style="${borderStyle}">${totals.reading}</td><td style="${borderStyle}"></td>
 
-        <td>${totals.english}</td><td>-</td>
-        <td>${totals.math}</td><td>-</td>
-        <td>${totals.kiswahili}</td><td>-</td>
-        <td>${totals.environment}</td><td>-</td>
-        <td>${totals.creativeArts}</td><td>-</td>
+        <td style="${borderStyle}">${totals.kusikiza}</td><td style="${borderStyle}"></td>
+        <td style="${borderStyle}">${totals.kuandi}</td><td style="${borderStyle}">${totals.kus_total}</td><td style="${borderStyle}"></td>
+        <td style="${borderStyle}">${totals.kus}</td><td style="${borderStyle}"></td>
 
-        <td>${totals.totalMarks}</td>
-        <td>${totals.totalPoints}</td>
+        <td style="${borderStyle}">${totals.math}</td><td style="${borderStyle}"></td>
+
+        <td style="${borderStyle}">${totals.envir}</td><td style="${borderStyle}">${totals.cre}</td>
+        <td style="${borderStyle}">${totals.env_total}</td><td style="${borderStyle}"></td>
+
+        <td style="${borderStyle}">${totals.ca}</td><td style="${borderStyle}"></td>
+
+        <td style="${borderStyle}">${totals.totalMarks}</td>
+        <td style="${borderStyle}">${totals.totalPoints}</td>
       </tr>
+    `;
 
-      <tr style="background:lightblue;font-weight:bold;">
-        <td colspan="3">Averages</td>
-
-        <td>${(totals.english / count).toFixed(1)}</td><td>-</td>
-        <td>${(totals.math / count).toFixed(1)}</td><td>-</td>
-        <td>${(totals.kiswahili / count).toFixed(1)}</td><td>-</td>
-        <td>${(totals.environment / count).toFixed(1)}</td><td>-</td>
-        <td>${(totals.creativeArts / count).toFixed(1)}</td><td>-</td>
-
-        <td>${(totals.totalMarks / count).toFixed(1)}</td>
-        <td>${(totals.totalPoints / count).toFixed(1)}</td>
-      </tr>
-    </tbody></table>
-
-    <div style="text-align:center;margin-top:15px;">
-      <button onclick="printSection('${gender}-section','${gradeValue}','${examPeriodValue}')">
-        🖨️ Print ${gender} Report
-      </button>
-    </div>
-    </div>`;
-
+    html += `</tbody></table></div>`;
     return html;
   }
 
-  // ===============================
-  // 🔹 OUTPUT
-  // ===============================
   reportOutput.innerHTML =
-    createTable(genderPerformance.male, "male", top5Male) +
-    createTable(genderPerformance.female, "female", top5Female);
+    build(genderPerformance.male, "male") +
+    build(genderPerformance.female, "female");
 
-  // ===============================
-  // ✅ AUTO SCROLL
-  // ===============================
   smoothScrollTo(reportOutput);
+
+
+
+
+
 
   // Celebration styles
   if (!document.getElementById("genderPerfStyles")) {
@@ -9554,140 +9672,261 @@ document.getElementById("cancelGradeBtn").addEventListener("click", () => {
     document.getElementById("customPrompt").style.display = "none";
 });
 function combineMarksByGradeWithDetails(mainGrade, selectedPeriod) {
-  // ===============================
-    // 🔹 AUTO SCROLL HELPER
-    // ===============================
-    function smoothScrollTo(el) {
-        setTimeout(() => {
-            el.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
-        }, 200); // delay ensures DOM is fully rendered
-    }
-    const rows = document.querySelectorAll("#marksList tr");
-    const learnersData = [];
-    const totals = {
-        eng: 0, math: 0, kiswahili: 0,
-        science: 0, social: 0, agriculture: 0, cre: 0, creativeArt: 0, totalMarks: 0, totalLevel: 0
+
+  function smoothScrollTo(el) {
+    setTimeout(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 200);
+  }
+
+  const rows = document.querySelectorAll("#marksList tr");
+  const learnersData = [];
+
+  const normalize = (v) =>
+    (v || "").toString().trim().toLowerCase().replace(/\s+/g, "");
+
+  const borderStyle = "border:3px solid black; padding:4px; text-align:center;";
+
+  const totals = {
+    eng_total: 0,
+    kus_total: 0,
+    math: 0,
+    env_total: 0,
+    ca: 0,
+    totalMarks: 0,
+    totalLevel: 0
+  };
+
+  let learnerCount = 0;
+
+  rows.forEach(row => {
+
+    const gradeText = normalize(row.getAttribute("data-grade"));
+    const periodAttr = normalize(row.getAttribute("data-exam-period"));
+
+    const mainGradeNorm = normalize(mainGrade);
+    const periodNorm = normalize(selectedPeriod);
+
+    const gradeMatches =
+      gradeText === mainGradeNorm ||
+      gradeText.includes(mainGradeNorm) ||
+      mainGradeNorm.includes(gradeText);
+
+    if (!gradeMatches || periodAttr !== periodNorm) return;
+
+    const cells = row.querySelectorAll("td");
+    if (cells.length < 26) return;
+
+    const learnerData = {
+      name: cells[1].textContent.trim(),
+      grade: cells[2].textContent.trim(),
+
+      eng: +cells[3].textContent || 0,
+      lang: +cells[4].textContent || 0,
+      wr: +cells[5].textContent || 0,
+      eng_total: +cells[6].textContent || 0,
+      eng_totalLev: +cells[7].textContent || 0,
+      reading: +cells[8].textContent || 0,
+      readingLev: +cells[9].textContent || 0,
+
+      kusikiza: +cells[10].textContent || 0,
+      lugha: +cells[11].textContent || 0,
+      kuandi: +cells[12].textContent || 0,
+      kus_total: +cells[13].textContent || 0,
+      kus_totalLev: +cells[14].textContent || 0,
+      kus: +cells[15].textContent || 0,
+      kusLev: +cells[16].textContent || 0,
+
+      math: +cells[17].textContent || 0,
+      mathLev: +cells[18].textContent || 0,
+
+      envir: +cells[19].textContent || 0,
+      cre: +cells[20].textContent || 0,
+      env_total: +cells[21].textContent || 0,
+      env_totalLev: +cells[22].textContent || 0,
+
+      ca: +cells[23].textContent || 0,
+      caLev: +cells[24].textContent || 0
     };
-    let learnerCount = 0;
 
-    rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        if (cells.length < 20) return;
+    learnerData.totalMarks =
+      learnerData.eng_total +
+      learnerData.kus_total +
+      learnerData.math +
+      learnerData.env_total +
+      learnerData.ca;
 
-        const gradeText = cells[2]?.textContent?.trim()?.toLowerCase();
-        const periodAttr = row.getAttribute("data-exam-period")?.trim()?.toLowerCase();
-        const normalizedMainGrade = mainGrade.trim().toLowerCase();
-        const normalizedPeriod = selectedPeriod.trim().toLowerCase();
-        const gradeMatches = gradeText === normalizedMainGrade || gradeText.includes(normalizedMainGrade);
+    learnerData.totalLevel =
+      getLevel(learnerData.eng_total) +
+      getLevel(learnerData.reading) +
+      getLevel(learnerData.kus_total) +
+      getLevel(learnerData.kus) +
+      getLevel(learnerData.math) +
+      getLevel(learnerData.env_total) +
+      getLevel(learnerData.ca);
 
-        if (gradeMatches && periodAttr === normalizedPeriod) {
-            const learnerData = {
-                name: cells[1].textContent.trim(),
-                grade: cells[2].textContent.trim(),
-                eng: parseFloat(cells[3].textContent) || 0,
-                math: parseFloat(cells[5].textContent) || 0,
-           
-                kiswahili: parseFloat(cells[7].textContent) || 0,
-                science: parseFloat(cells[9].textContent) || 0,
-                social: parseFloat(cells[11].textContent) || 0,
-                agriculture: parseFloat(cells[13].textContent) || 0,
-                cre: parseFloat(cells[15].textContent) || 0,
-                creativeArt: parseFloat(cells[17].textContent) || 0
-            };
+    learnersData.push(learnerData);
 
-            learnerData.totalMarks = Object.values(learnerData).slice(2).reduce((sum, mark) => sum + mark, 0);
-            learnerData.totalLevel = 
-                getLevel(learnerData.eng) + getLevel(learnerData.math) + getLevel(learnerData.preTech) +
-                getLevel(learnerData.kiswahili) + getLevel(learnerData.science) + getLevel(learnerData.social) +
-                getLevel(learnerData.agriculture) + getLevel(learnerData.cre) + getLevel(learnerData.creativeArt);
+    totals.eng_total += learnerData.eng_total;
+    totals.kus_total += learnerData.kus_total;
+    totals.math += learnerData.math;
+    totals.env_total += learnerData.env_total;
+    totals.ca += learnerData.ca;
+    totals.totalMarks += learnerData.totalMarks;
+    totals.totalLevel += learnerData.totalLevel;
 
-            learnersData.push(learnerData);
-            for (let key in totals) totals[key] += learnerData[key];
-            learnerCount++;
-        }
+    learnerCount++;
+  });
+
+  if (!learnersData.length) {
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'info',
+      title: `No data found for grade ${mainGrade} and period ${selectedPeriod}.`,
+      showConfirmButton: false,
+      timer: 3000
     });
+    return;
+  }
 
-    if (learnersData.length === 0) {
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'info',
-            title: `No data found for grade ${mainGrade} and period ${selectedPeriod}.`,
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true
-        });
-        return;
-    }
+  learnersData.sort((a, b) => b.totalMarks - a.totalMarks);
 
-    learnersData.sort((a, b) => b.totalMarks - a.totalMarks);
-    const top20 = learnersData.slice(0, 20);
+  const year = new Date().getFullYear();
+  const avg = v => learnerCount ? (v / learnerCount).toFixed(2) : "0.00";
 
-    const year = new Date().getFullYear();
-    const avg = val => (learnerCount ? (val / learnerCount).toFixed(2) : "0.00");
+  let html = `
+  <div style="text-align:center;margin-bottom:15px;">
+    <h2>COMBINED MARKS REPORT</h2>
+    <p>Year: ${year} | Grade: ${mainGrade} | Period: ${selectedPeriod}</p>
+  </div>
 
-    let html = `
-    <div style="text-align:center; margin-bottom:20px;">
-        <img src="https://i.imgur.com/VSAh48K.jpeg" alt="Logo" style="display:block; margin:0 auto 10px; width:80px;">
-        <h2 style="margin:0;">NACHU PRIMARY SCHOOL COMBINED MARKS REPORT</h2>
-        <p>Address: P.O. Box 561-00902, Kikuyu, Kenya</p>
-        <p>Motto: "My Talent My Passion"</p>
-        <p>Year: ${year}</p>
-        <p>Grade: ${mainGrade}</p>
-        <p>Exam Period: ${selectedPeriod}</p>
-    </div>
-    <table style="width:100%; border-collapse:collapse; font-size:15px;">
-        <thead>
-            <tr style="background:#f2f2f2;">
-                <th style="border:3px solid black;">No.</th>
-                <th style="border:3px solid black;">Name</th>
-                <th style="border:3px solid black;">Grade</th>
-                ${['Eng','Math','Kisw','Scie','SST','Agric','CRE','C/A'].map(sub => `
-                <th style="border:3px solid black;">${sub}</th>
-                <th style="border:3px solid black;">Level</th>`).join('')}
-                <th style="border:3px solid black;">Total</th>
-                <th style="border:3px solid black;">Total Level</th> <!-- Added Total Level column -->
-            </tr>
-        </thead>
-        <tbody>`;
+  <table style="width:100%; border-collapse:collapse; font-size:13px;">
+    <thead>
+      <tr style="background:#d9edf7;">
+        <th style="${borderStyle}">No</th>
+        <th style="${borderStyle}">Name</th>
+        <th style="${borderStyle}">Grade</th>
 
-    learnersData.forEach((l, i) => {
-        html += `<tr>
-            <td style="border:3px solid black;">${i + 1}</td>
-            <td style="border:3px solid black;">${l.name}</td>
-            <td style="border:3px solid black;">${l.grade}</td>
-            ${['eng','math','kiswahili','science','social','agriculture','cre','creativeArt']
-            .map(k => `<td style="border:3px solid black;">${l[k]}</td><td style="border:3px solid black;">${getLevel(l[k])}</td>`).join('')}
-            <td style="border:3px solid black;">${l.totalMarks}</td>
-            <td style="border:3px solid black;">${l.totalLevel}</td> <!-- Added Total Level value -->
-        </tr>`;
-    });
+        <th style="${borderStyle}">Eng</th>
+        <th style="${borderStyle}">Lang</th>
+        <th style="${borderStyle}">Wr</th>
+        <th style="${borderStyle}">E.Tot</th>
+        <th style="${borderStyle}">E.Lvl</th>
+
+        <th style="${borderStyle}">Read</th>
+        <th style="${borderStyle}">R.Lvl</th>
+
+        <th style="${borderStyle}">KisK</th>
+        <th style="${borderStyle}">Lang</th>
+        <th style="${borderStyle}">Wr</th>
+        <th style="${borderStyle}">K.Tot</th>
+        <th style="${borderStyle}">K.Lvl</th>
+
+        <th style="${borderStyle}">Kis</th>
+        <th style="${borderStyle}">K.Lvl</th>
+
+        <th style="${borderStyle}">Math</th>
+        <th style="${borderStyle}">M.Lvl</th>
+
+        <th style="${borderStyle}">Env</th>
+        <th style="${borderStyle}">Cre</th>
+        <th style="${borderStyle}">EnvTot</th>
+        <th style="${borderStyle}">EnvLvl</th>
+
+        <th style="${borderStyle}">CA</th>
+        <th style="${borderStyle}">CA Lvl</th>
+
+        <th style="${borderStyle}">Total</th>
+        <th style="${borderStyle}">Total Lvl</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  learnersData.forEach((l, i) => {
 
     html += `
-    <tr style="background:#e6f7ff; font-weight:bold;">
-        <td colspan="3" style="border:3px solid black;">TOTAL</td>
-        ${['eng','math','kiswahili','science','social','agriculture','cre','creativeArt']
-        .map(k => `<td style="border:3px solid black;">${totals[k]}</td><td style="border:3px solid black;"></td>`).join('')}
-        <td style="border:3px solid black;">${totals.totalMarks}</td>
-        <td style="border:3px solid black;">${totals.totalLevel}</td> <!-- Added Total Level value -->
-    </tr>
-    <tr style="background:#fcf8e3; font-weight:bold;">
-        <td colspan="3" style="border:3px solid black;">AVERAGE</td>
-        ${['eng','math','kiswahili','science','social','agriculture','cre','creativeArt']
-        .map(k => `<td style="border:3px solid black;">${avg(totals[k])}</td><td style="border:3px solid black;"></td>`).join('')}
-        <td style="border:3px solid black;">${avg(totals.totalMarks)}</td>
-        <td style="border:3px solid black;">${avg(totals.totalLevel)}</td> <!-- Added Average Level value -->
-    </tr></tbody></table>`;
+      <tr>
+        <td style="${borderStyle}">${i + 1}</td>
+        <td style="${borderStyle}">${l.name}</td>
+        <td style="${borderStyle}">${l.grade}</td>
 
-    const reportOutput = document.getElementById("reportOutput");
-    reportOutput.innerHTML = html;
- // ===============================
-    // ✅ AUTO SCROLL TRIGGER
-    // ===============================
-    smoothScrollTo(reportOutput);
+        <td style="${borderStyle}">${l.eng}</td>
+        <td style="${borderStyle}">${l.lang}</td>
+        <td style="${borderStyle}">${l.wr}</td>
+        <td style="${borderStyle}">${l.eng_total}</td>
+        <td style="${borderStyle}">${l.eng_totalLev}</td>
+
+        <td style="${borderStyle}">${l.reading}</td>
+        <td style="${borderStyle}">${l.readingLev}</td>
+
+        <td style="${borderStyle}">${l.kusikiza}</td>
+        <td style="${borderStyle}">${l.lugha}</td>
+        <td style="${borderStyle}">${l.kuandi}</td>
+        <td style="${borderStyle}">${l.kus_total}</td>
+        <td style="${borderStyle}">${l.kus_totalLev}</td>
+
+        <td style="${borderStyle}">${l.kus}</td>
+        <td style="${borderStyle}">${l.kusLev}</td>
+
+        <td style="${borderStyle}">${l.math}</td>
+        <td style="${borderStyle}">${l.mathLev}</td>
+
+        <td style="${borderStyle}">${l.envir}</td>
+        <td style="${borderStyle}">${l.cre}</td>
+        <td style="${borderStyle}">${l.env_total}</td>
+        <td style="${borderStyle}">${l.env_totalLev}</td>
+
+        <td style="${borderStyle}">${l.ca}</td>
+        <td style="${borderStyle}">${l.caLev}</td>
+
+        <td style="${borderStyle}"><b>${l.totalMarks}</b></td>
+        <td style="${borderStyle}"><b>${l.totalLevel}</b></td>
+      </tr>
+    `;
+  });
+
+  html += `
+    <tr style="background:#ffe082;font-weight:bold;">
+      <td colspan="3" style="${borderStyle}">TOTAL</td>
+      <td colspan="5" style="${borderStyle}">${totals.eng_total}</td>
+      <td colspan="2" style="${borderStyle}"></td>
+
+      <td colspan="5" style="${borderStyle}">${totals.kus_total}</td>
+      <td colspan="2" style="${borderStyle}"></td>
+
+      <td colspan="2" style="${borderStyle}">${totals.math}</td>
+      <td colspan="4" style="${borderStyle}">${totals.env_total}</td>
+      <td colspan="2" style="${borderStyle}">${totals.ca}</td>
+
+      <td style="${borderStyle}">${totals.totalMarks}</td>
+      <td style="${borderStyle}">${totals.totalLevel}</td>
+    </tr>
+
+    <tr style="background:#c8e6c9;font-weight:bold;">
+      <td colspan="3" style="${borderStyle}">AVERAGE</td>
+      <td colspan="5" style="${borderStyle}">${avg(totals.eng_total)}</td>
+      <td colspan="2" style="${borderStyle}"></td>
+
+      <td colspan="5" style="${borderStyle}">${avg(totals.kus_total)}</td>
+      <td colspan="2" style="${borderStyle}"></td>
+
+      <td colspan="2" style="${borderStyle}">${avg(totals.math)}</td>
+      <td colspan="4" style="${borderStyle}">${avg(totals.env_total)}</td>
+      <td colspan="2" style="${borderStyle}">${avg(totals.ca)}</td>
+
+      <td style="${borderStyle}">${avg(totals.totalMarks)}</td>
+      <td style="${borderStyle}">${avg(totals.totalLevel)}</td>
+    </tr>
+  </tbody></table>
+  `;
+
+  document.getElementById("reportOutput").innerHTML = html;
+
+  smoothScrollTo(document.getElementById("reportOutput"));
+
+  
     // Print Button
     let printButton = document.getElementById("printCombinedMarksBtn");
     if (!printButton) {
@@ -13072,59 +13311,26 @@ function renderSubjectAverages(sums, count, previousSums = null, selectedClass =
     }
 
     // ===============================
-    // 🔥 USE EXACT TABLE STRUCTURE (FILTERED VIEW)
+    // SUBJECTS (DATA DRIVEN ONLY)
     // ===============================
     const subjects = [
-      { name: "English", col: 6 },
-      { name: "Mathematics", col: 13 },
-      { name: "Kiswahili", col: 17 },
-      { name: "Environment", col: 21 },
-     
-      { name: "Creative Arts", col: 23 }
+      { name: "English", key: "eng_total" },
+      { name: "Mathematics", key: "math" },
+      { name: "Kiswahili", key: "kus_total" },
+      { name: "Environment", key: "env_total" },
+      { name: "Creative Arts", key: "ca" }
     ];
 
-    const rows = Array.from(document.querySelectorAll("#marksList tr"));
-
-    let totals = {};
-    let counts = {};
-
-    subjects.forEach(s => {
-      totals[s.name] = 0;
-      counts[s.name] = 0;
-    });
+    const divisor = count || 1;
 
     // ===============================
-    // 🔥 ONLY USE VALID FILTERED ROWS
-    // ===============================
-    rows.forEach(row => {
-
-      const grade = row.getAttribute("data-grade");
-      const period = row.getAttribute("data-exam-period");
-
-      // IMPORTANT: respect filters
-      if (selectedClass && grade !== selectedClass) return;
-      if (selectedClass && period !== selectedClass) return; // optional safeguard
-
-      subjects.forEach(sub => {
-
-        const cell = row.cells[sub.col];
-        const val = parseFloat(cell?.textContent);
-
-        if (!isNaN(val)) {
-          totals[sub.name] += val;
-          counts[sub.name]++;
-        }
-      });
-    });
-
-    // ===============================
-    // CALCULATE AVERAGES
+    // CALCULATE AVERAGES FROM SUMS ONLY
     // ===============================
     let averages = {};
 
     subjects.forEach(sub => {
-      const cnt = counts[sub.name] || 1;
-      averages[sub.name] = totals[sub.name] / cnt;
+      const total = sums[sub.key] || 0;
+      averages[sub.name] = total / divisor;
     });
 
     // ===============================
@@ -13141,7 +13347,7 @@ function renderSubjectAverages(sums, count, previousSums = null, selectedClass =
     if (meanEl) meanEl.style.color = meanDetails.color;
 
     // ===============================
-    // RANKING
+    // SORT FOR RANKING
     // ===============================
     const sorted = Object.entries(averages)
       .sort((a, b) => b[1] - a[1]);
@@ -13150,13 +13356,21 @@ function renderSubjectAverages(sums, count, previousSums = null, selectedClass =
 
       const { grade, color, comment } = getGradeDetails(avg);
 
+      // trend (optional previous comparison)
+      let trend = "";
+      if (previousSums && previousSums[subject]) {
+        const prevAvg = previousSums[subject] / divisor;
+        if (avg > prevAvg) trend = " ↑";
+        else if (avg < prevAvg) trend = " ↓";
+      }
+
       const card = document.createElement("div");
       card.className = "average-card";
 
       card.innerHTML = `
         <div class="rank-badge">${index + 1}</div>
 
-        <div class="subject-name">${subject}</div>
+        <div class="subject-name">${subject}${trend}</div>
 
         <div style="font-size:18px; font-weight:bold; color:${color}">
           ${avg.toFixed(2)} (${grade})
