@@ -2145,58 +2145,6 @@ button[onclick^="show"] {
   transform: scale(1.15);
   filter: brightness(1.2);
 }
-
-@media print {
-
-    body * {
-        visibility: hidden;
-    }
-
-    #reportOutput, #reportOutput * {
-        visibility: visible;
-        color: black !important;
-    }
-
-    #reportOutput {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-    }
-
-    #printLevelSummaryBtn {
-        display: none !important;
-    }
-
-    th, td {
-        color: black !important;
-    }
-
-    th {
-        background: #f4f4f4 !important;
-    }
-
-    /* =========================
-       STAMP BASE STYLE
-    ========================= */
-    .stamp {
-        display: block !important;
-        border: 2px solid black;
-        width: 250px;
-        margin: 30px auto;
-        text-align: center;
-        font-weight: bold;
-        padding: 10px;
-        color: black !important;
-    }
-
-    /* =========================
-       ONLY SCHOOL NAME + DEPT BLUE
-    ========================= */
-    .stamp-title {
-        color: blue !important;
-    }
-}
 </style>
 
 </head>
@@ -7841,99 +7789,67 @@ function generateSubjectChampionsReport(selectedGrade, selectedExamPeriod) {
     launchCelebration();
     showChampionNamesPopup();
 
-   // 🖨️ Print button (FIXED + STABLE)
-let printButton = document.getElementById("printSubjectChampionsBtn");
+    // 🖨️ Print button
+    let printButton = document.getElementById("printSubjectChampionsBtn");
+    if (!printButton) {
+        printButton = document.createElement("button");
+        printButton.id = "printSubjectChampionsBtn";
+        printButton.className = "print-button";
+        printButton.innerHTML = '<i class="fas fa-print"></i> Print Report';
+        reportOutput.appendChild(printButton);
 
-if (!printButton) {
-    printButton = document.createElement("button");
-    printButton.id = "printSubjectChampionsBtn";
-    printButton.className = "print-button";
-    printButton.innerHTML = '<i class="fas fa-print"></i> Print Report';
-
-    // ✅ ensure visibility
-    printButton.style.display = "block";
-    printButton.style.margin = "20px auto";
-    printButton.style.padding = "10px 18px";
-    printButton.style.cursor = "pointer";
-
-    reportOutput.appendChild(printButton);
-
-    printButton.addEventListener("click", () => {
-
-        const printWindow = window.open('', '_blank');
-
-        const content = reportOutput.cloneNode(true);
-
-        // ❌ remove print button from print output
-        const btn = content.querySelector("#printSubjectChampionsBtn");
-        if (btn) btn.remove();
-
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Subject Champions Report</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-
-                        table {
-                            width: 100%;
-                            border-collapse: collapse;
-                        }
-
-                        table, th, td {
-                            border: 2px solid black;
-                            padding: 8px;
-                        }
-
-                        th {
-                            background-color: #f4f4f4;
-                            font-weight: bold;
-                        }
-
-                        img { max-width: 100px; }
-
-                        .stamp {
-                            border: 2px solid blue;
-                            color: blue;
-                            text-align: center;
-                            width: 200px;
-                            height: 70px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            margin: 30px auto;
-                            font-weight: bold;
-                            font-size: 14px;
-                        }
-
-                        @media print {
-                            .print-button {
-                                display: none !important;
+        printButton.addEventListener("click", () => {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Subject Champions Report</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            table { width: 100%; border-collapse: collapse; }
+                            table, th, td { border: 2px solid black; padding: 8px; }
+                            th { background-color: #f4f4f4; font-weight: bold; }
+                            img { max-width: 100px; }
+                            .stamp {
+                                border: 2px solid blue;
+                                color: blue;
+                                text-align: center;
+                                width: 200px;
+                                height: 70px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin: 30px auto;
+                                font-weight: bold;
+                                font-size: 14px;
                             }
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${content.innerHTML}
-                </body>
-            </html>
-        `);
-
-        printWindow.document.close();
-        printWindow.focus();
-
-        setTimeout(() => {
+                            @media screen {
+                                .stamp { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${reportOutput.innerHTML}
+                        <div class="stamp">
+                            Nachu Primary School<br>
+                            P.O. Box 561-00902, Kikuyu<br>
+                            Exam Department<br>
+                            Date: ${printDate}
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
             printWindow.print();
-        }, 300);
-      });
+        });
     }
 }
 
 
 function generateLevelSummary(selectedGrade, selectedExamPeriod) {
 
-    // ===============================
-    // AUTO SCROLL
+ // ===============================
+    // 🔹 AUTO SCROLL HELPER
     // ===============================
     function smoothScrollTo(el) {
         setTimeout(() => {
@@ -7944,9 +7860,7 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
         }, 200);
     }
 
-    // ===============================
-    // SUBJECT CONFIG
-    // ===============================
+    // ✅ NEW SUBJECTS WITH COLUMN MAPPING (LEVEL COLUMNS)
     const subjectConfig = [
         { name: "English", levelCol: 7 },
         { name: "Kiswahili", levelCol: 16 },
@@ -7955,8 +7869,10 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
         { name: "Creative Arts", levelCol: 24 }
     ];
 
+    // ✅ KEEP ORIGINAL LEVELS (FOR DATA)
     const levels = ['1', '2', '3', '4'];
 
+    // ✅ LABELS (FOR DISPLAY ONLY)
     const levelLabels = {
         '1': '1 (BE)',
         '2': '2 (AE)',
@@ -7967,24 +7883,25 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
     const summary = {};
     const topPerformers = {};
 
+    // ===============================
+    // INITIALIZE
+    // ===============================
     subjectConfig.forEach(sub => {
         summary[sub.name] = {};
-        levels.forEach(l => summary[sub.name][l] = 0);
+        levels.forEach(level => summary[sub.name][level] = 0);
         topPerformers[sub.name] = null;
     });
 
     const marksTableBody = document.getElementById("marksList");
-    if (!marksTableBody) return;
 
     marksTableBody.querySelectorAll("tr").forEach(row => {
-
         const rowGrade = row.getAttribute("data-grade");
         const rowPeriod = row.getAttribute("data-exam-period");
 
         if (selectedGrade && rowGrade !== selectedGrade) return;
         if (selectedExamPeriod && rowPeriod !== selectedExamPeriod) return;
 
-        const learnerName = row.cells[1]?.textContent || "";
+        const learnerName = row.cells[1].textContent;
 
         subjectConfig.forEach(sub => {
             const level = row.cells[sub.levelCol]?.textContent?.trim();
@@ -7992,6 +7909,7 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
             if (levels.includes(level)) {
                 summary[sub.name][level]++;
 
+                // Track top performer (highest level = 4)
                 if (!topPerformers[sub.name] && level === '4') {
                     topPerformers[sub.name] = learnerName;
                 }
@@ -8003,151 +7921,61 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
     const today = new Date();
     const printDate = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
 
-    // ===============================
-    // BUILD HTML
-    // ===============================
     let html = `
-        <div class="header" style="text-align:center;margin-bottom:20px;">
-            <img src="https://i.imgur.com/VSAh48K.jpeg" style="max-width:80px;">
+        <div class="header" style="text-align: center; margin-bottom: 20px;">
+            <img src="https://i.imgur.com/VSAh48K.jpeg" style="display: block; margin: 0 auto 10px; max-width: 80px;">
             <h2>NACHU PRIMARY SCHOOL SUBJECT LEVEL SUMMARY REPORT</h2>
+            <p>Address: P.O. Box 561-00902, Kikuyu, Kenya</p>
+            <p>School Motto: "My Talent My Passion"</p>
             <p>Year: ${year}</p>
             <p>Grade: ${selectedGrade || 'All Grades'}</p>
             <p>Exam Period: ${selectedExamPeriod || 'All Periods'}</p>
         </div>
 
-        <table style="width:100%;border-collapse:collapse;font-size:16px;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px; background: white; color: black; font-size: 16px;">
             <thead>
-                <tr style="background:#f2f2f2;">
-                    <th style="border:2px solid black;padding:10px;">Subject</th>
-    `;
+                <tr style="background: #f2f2f2;">
+                    <th style="border: 2px solid black; padding: 10px;">Subject</th>`;
 
-    levels.forEach(l => {
-        html += `<th style="border:2px solid black;padding:10px;">${levelLabels[l]}</th>`;
+    // ✅ USE LABELS HERE ONLY (DISPLAY)
+    levels.forEach(level => {
+        html += `<th style="border: 2px solid black; padding: 10px;">${levelLabels[level]}</th>`;
     });
 
     html += `</tr></thead><tbody>`;
 
     subjectConfig.forEach(sub => {
         html += `<tr>
-            <td style="border:2px solid black;padding:10px;">${sub.name}</td>`;
+            <td style="border: 2px solid black; padding: 10px;">${sub.name}</td>`;
 
-        levels.forEach(l => {
-            html += `<td style="border:2px solid black;padding:10px;">${summary[sub.name][l]}</td>`;
+        levels.forEach(level => {
+            html += `<td style="border: 2px solid black; padding: 10px;">${summary[sub.name][level]}</td>`;
         });
 
         html += `</tr>`;
     });
 
-    html += `
-        </tbody>
-        </table>
+    html += `</tbody></table>
 
-        <!-- STAMP (SCREEN HIDDEN, PRINT ONLY) -->
-        <div class="stamp">
-    <span class="stamp-title">Nachu Primary School</span><br>
-    <span class="stamp-title">Exam Department</span><br>
-    Date: ${printDate}
-</div>
-    `;
+        <div class="stamp print-only" style="margin-top:40px;">
+            Nachu Primary School<br>
+            P.O. Box 561-00902, Kikuyu<br>
+            Exam Department<br>
+            Date: ${printDate}
+        </div>`;
 
     const reportOutput = document.getElementById("reportOutput");
-    if (!reportOutput) return;
-
     reportOutput.innerHTML = html;
 
     // ===============================
-    // PRINT BUTTON (DIRECT PRINT DIALOG)
-    // ===============================
-    let printButton = document.getElementById("printLevelSummaryBtn");
-    if (printButton) printButton.remove();
-
-    printButton = document.createElement("button");
-    printButton.id = "printLevelSummaryBtn";
-    printButton.className = "print-button";
-    printButton.innerHTML = '<i class="fas fa-print"></i> Print Report';
-
-    printButton.style.display = "block";
-    printButton.style.margin = "20px auto";
-    printButton.style.padding = "10px 20px";
-    printButton.style.cursor = "pointer";
-
-    reportOutput.appendChild(printButton);
-
-    printButton.addEventListener("click", () => {
-        window.print();
-    });
-
-    // ===============================
-    // PRINT CSS (IMPORTANT)
-    // ===============================
-    if (!document.getElementById("printStyles")) {
-        const style = document.createElement("style");
-        style.id = "printStyles";
-        style.textContent = `
-            .stamp {
-                display: none;
-            }
-
-            @media print {
-
-                body * {
-                    visibility: hidden;
-                }
-
-                #reportOutput, #reportOutput * {
-                    visibility: visible;
-                }
-
-                #reportOutput {
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    width: 100%;
-                }
-
-                #printLevelSummaryBtn {
-                    display: none !important;
-                }
-
-                .stamp {
-                    display: block !important;
-                    border: 2px solid blue;
-                    color: blue;
-                    width: 250px;
-                    margin: 30px auto;
-                    text-align: center;
-                    font-weight: bold;
-                    padding: 10px;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    // ===============================
-    // SCROLL
+    // ✅ AUTO SCROLL TRIGGER
     // ===============================
     smoothScrollTo(reportOutput);
+ // ===============================
+    // 🎇 CELEBRATION
+    // =============================== 
 
-    // ===============================
-    // CELEBRATION
-    // ===============================
-    function floatCelebration() {
-        const emojis = ['🎉','🏆','🌟','✨','🎊'];
-        for (let i = 0; i < 40; i++) {
-            const span = document.createElement("span");
-            span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-            span.style.position = "fixed";
-            span.style.left = Math.random() * 100 + "vw";
-            span.style.top = Math.random() * 100 + "vh";
-            span.style.fontSize = (20 + Math.random() * 20) + "px";
-            span.style.zIndex = 9999;
-            span.style.animation = "floatUp 3s ease-out forwards";
-            document.body.appendChild(span);
-            setTimeout(() => span.remove(), 8000);
-        }
-    }
-
+    // Celebration Styles
     if (!document.getElementById("levelSummaryStyles")) {
         const style = document.createElement("style");
         style.id = "levelSummaryStyles";
@@ -8156,37 +7984,115 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
                 0% { transform: translateY(0) scale(1); opacity: 1; }
                 100% { transform: translateY(-150px) scale(1.5); opacity: 0; }
             }
+            @keyframes fadeZoom {
+                from { transform: scale(0.5); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+            }
+            @keyframes fadeAway {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
         `;
         document.head.appendChild(style);
     }
 
-    function showTopPopup() {
-        const subjects = subjectConfig.map(s => s.name);
+    // Floating emoji
+    function floatCelebration() {
+        const emojis = ['🎇', '🎉', '🎊', '🏆', '🌟', '🥇', '✨', '💫'];
+        for (let i = 0; i < 60; i++) {
+            const span = document.createElement('span');
+            span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            span.style.position = 'fixed';
+            span.style.left = `${Math.random() * 100}vw`;
+            span.style.top = `${Math.random() * 100}vh`;
+            span.style.fontSize = `${20 + Math.random() * 20}px`;
+            span.style.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+            span.style.zIndex = 9999;
+            span.style.pointerEvents = 'none';
+            span.style.animation = 'floatUp 3s ease-out forwards';
+            document.body.appendChild(span);
+            setTimeout(() => span.remove(), 10000);
+        }
+    }
 
+    // Popup with top level learners
+    function showTopPopup() {
         const popup = document.createElement("div");
         popup.style.position = "fixed";
         popup.style.top = "50%";
         popup.style.left = "50%";
         popup.style.transform = "translate(-50%, -50%)";
-        popup.style.background = "#fff8dc";
-        popup.style.border = "3px solid gold";
-        popup.style.padding = "20px";
-        popup.style.borderRadius = "15px";
+        popup.style.background = "linear-gradient(to right, #fff8dc, #ffe680)";
+        popup.style.border = "4px solid gold";
+        popup.style.padding = "25px";
+        popup.style.borderRadius = "20px";
+        popup.style.fontSize = "22px";
+        popup.style.fontWeight = "bold";
         popup.style.zIndex = 10000;
-
-        popup.innerHTML =
-            `<strong>🌟 Top Performers 🌟</strong><br><br>` +
-            subjects.map(sub =>
-                `🏅 ${sub}: ${topPerformers[sub] || 'None'}`
-            ).join("<br>");
+        popup.style.boxShadow = "0 0 25px gold";
+        popup.style.animation = "fadeZoom 1s ease, fadeAway 1s ease 9s";
+        popup.innerHTML = `<div>🌟 Top Level Performers 🌟<br><br>` +
+            subjects.map(sub => `🏅 <strong>${sub}</strong>: ${topPerformers[sub] || 'None'}`).join("<br>") +
+            `</div>`;
 
         document.body.appendChild(popup);
-        setTimeout(() => popup.remove(), 8000);
+        setTimeout(() => popup.remove(), 10000);
     }
 
     floatCelebration();
     showTopPopup();
+
+    // Print button
+    let printButton = document.getElementById("printLevelSummaryBtn");
+    if (!printButton) {
+        printButton = document.createElement("button");
+        printButton.id = "printLevelSummaryBtn";
+        printButton.className = "print-button";
+        printButton.innerHTML = '<i class="fas fa-print"></i> Print Report';
+        reportOutput.appendChild(printButton);
+
+        printButton.addEventListener("click", () => {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Subject Level Summary Report</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom:20px; }
+                            table, th, td { border: 2px solid black; padding: 8px; }
+                            th { background-color: #f4f4f4; font-weight: bold; }
+                            img { max-width: 100px; }
+                            .header { text-align: center; margin-bottom: 30px; }
+                            .stamp {
+                                border: 2px solid blue;
+                                color: blue;
+                                width: 200px;
+                                height: 70px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin: 10px auto;
+                                text-align: center;
+                                font-weight: bold;
+                                font-size: 14px;
+                            }
+                            @media screen {
+                                .stamp { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${reportOutput.innerHTML}
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        });
+    }
 }
+
 
 function showSubjectRanking(selectedGrade, selectedExamPeriod) {
 
@@ -9637,9 +9543,7 @@ document.getElementById("teacherForm").addEventListener("submit", function (e) {
     // Create term details object
     const termDetails = { year, term, closingDate, openingDate, classTeacherSignature, principalSignature };
 
-    setTimeout(() => {
     closeTeacherModal();
-}, 100);
 
     // Generate reports with both teacher and term details
     generateLearnerAssessmentReports(termDetails);
@@ -12501,11 +12405,10 @@ function generateSubjectRankingPerLearner(selectedGrade, selectedPeriod) {
   enableEnterAsTab('#learnerForm');      // Registration form
   enableEnterAsTab('#marksForm');        // Marks form
   enableEnterAsTab('#learnersList');     // Registered Learners table rows
-
 // ==============================
 // 🔹 User & Admin Credentials
 // ==============================
-const adminCredentials = { username: 'admin', password: 'admin123' };
+const adminCredentials = { username: 'admin', password: '1' };
 
 const users = [
   { username: "Nachu", password: "1", role: "parent" },
@@ -12519,360 +12422,191 @@ let isAdminLoggedIn = false;
 // 🔹 Login Form Submission
 // ==============================
 document.getElementById("loginForm").addEventListener("submit", function (e) {
-
   e.preventDefault();
 
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
 
-  // check admin credentials
-  const isAdmin =
-    username === adminCredentials.username &&
-    password === adminCredentials.password;
+  // Check admin credentials first
+  const isAdmin = username === adminCredentials.username && password === adminCredentials.password;
 
-  // check users array
-  const currentUser =
-    users.find(u => u.username === username && u.password === password) || null;
-
-  // unified role
-  const role = isAdmin ? "admin" : currentUser?.role;
+  // Check regular users
+  const currentUser = users.find(u => u.username === username && u.password === password);
 
   if (isAdmin || currentUser) {
 
+    let role = isAdmin ? "admin" : currentUser.role;
+    let usernameToShow = isAdmin ? "Admin" : currentUser.username;
+
     // ==============================
-    // 🔹 LOGIN SUCCESS
+    // 🔰 UI UPDATES
     // ==============================
-    if (role === "admin") {
-      isAdminLoggedIn = true;
+
+    showUserBadge(usernameToShow, role, isAdmin);
+    updateGreeting(usernameToShow);
+
+    const profileNameEl = document.getElementById("profileName");
+    if (profileNameEl) {
+      profileNameEl.textContent = usernameToShow;
     }
 
+    // ==============================
+    // 💾 SAVE LOGIN
+    // ==============================
+    const userData = {
+      username: usernameToShow,
+      role: role,
+      isAdmin: isAdmin
+    };
+
+    saveLoginSession(userData);
+
+    if (isAdmin) isAdminLoggedIn = true;
+
+    // Hide login, show main UI
     document.getElementById("loginSection").style.display = "none";
     document.getElementById("mainContent").style.display = "block";
     document.getElementById("loginError").style.display = "none";
 
-    // show badge
-    showUserBadge(username, role, isAdmin);
-
     // ==============================
-    // 🔹 BUTTON ACCESS CONTROL
+    // 🔐 BUTTON ACCESS CONTROL
     // ==============================
-    const allButtons =
-      document.querySelectorAll("#mainContent button");
+   const allButtons = document.querySelectorAll("#mainContent button");
 
-    allButtons.forEach(btn => {
+allButtons.forEach(btn => {
 
-      // ADMIN → sees everything
-      if (role === "admin") {
+  // ==============================
+  // 🔐 ADMIN ONLY BUTTONS (EXPLICIT LOCKS)
+  // ==============================
 
-        btn.style.display = "inline-block";
+  const adminOnlyButtons = [
+    "masterToggleBtn",              // Learners Database
+    "togglePerformanceReportsBtn"   // Exam Reports
+  ];
 
-      }
+  if (adminOnlyButtons.includes(btn.id)) {
+    btn.style.display = isAdmin ? "inline-block" : "none";
+    return; // stop further processing
+  }
 
-      // PARENT → limited buttons
-      else if (role === "parent") {
+  // ==============================
+  // ADMIN → sees everything
+  // ==============================
+  if (isAdmin) {
+    btn.style.display = "inline-block";
+  }
 
-        if (
-          btn.id === "toggleParentLookupBtn" ||
-          btn.id === "fetchParentResults"
-        ) {
+  // ==============================
+  // PARENT → limited buttons
+  // ==============================
+  else if (currentUser.role === "parent") {
+    if (
+      btn.id === "toggleParentLookupBtn" ||
+      btn.id === "fetchParentResults"
+    ) {
+      btn.style.display = "inline-block";
+    } else {
+      btn.style.display = "none";
+    }
+  }
 
-          btn.style.display = "inline-block";
+  // ==============================
+  // TEACHER → most buttons
+  // ==============================
+  else {
+    btn.style.display = "inline-block";
+  }
 
-        } else {
-
-          btn.style.display = "none";
-
-        }
-
-      }
-
-      // TEACHER → most buttons
-      else if (role === "teacher") {
-
-        btn.style.display = "inline-block";
-
-      }
-
-    });
-
+});
     // ==============================
-    // 🔹 REPORTS SECTION ACCESS
+    // 🔹 ADMIN-ONLY BUTTONS
     // ==============================
-    const reportsControls =
-      document.getElementById("reportsControls");
+    if (isAdmin) {
+      document.querySelectorAll(".admin-only")
+        .forEach(btn => btn.style.display = "inline-block");
 
-    const examReportsBtn =
-      document.getElementById("togglePerformanceReportsBtn");
-
-    const marksSectionBtn =
-      document.getElementById("toggleMarksSectionBtn");
-
-    const recordMarksBtn =
-      document.getElementById("toggleRecordMarksBtn");
-
-    if (reportsControls) {
-
-      // hide first
-      reportsControls.style.display = "none";
-
-      if (examReportsBtn)
-        examReportsBtn.style.display = "none";
-
-      if (marksSectionBtn)
-        marksSectionBtn.style.display = "none";
-
-      if (recordMarksBtn)
-        recordMarksBtn.style.display = "none";
-
-      // ADMIN → everything
-      if (role === "admin") {
-
-        reportsControls.style.display = "flex";
-
-        if (examReportsBtn)
-          examReportsBtn.style.display = "inline-block";
-
-        if (marksSectionBtn)
-          marksSectionBtn.style.display = "inline-block";
-
-        if (recordMarksBtn)
-          recordMarksBtn.style.display = "inline-block";
-
-      }
-
-      // TEACHER → marks + record
-      else if (role === "teacher") {
-
-        reportsControls.style.display = "flex";
-
-        if (marksSectionBtn)
-          marksSectionBtn.style.display = "inline-block";
-
-        if (recordMarksBtn)
-          recordMarksBtn.style.display = "inline-block";
-
-      }
-
-      // PARENT → no reports access
-      else {
-
-        reportsControls.style.display = "none";
-
-      }
-
+      const saveBtn = document.getElementById("saveEditedMarksBtn");
+      if (saveBtn) saveBtn.style.display = "inline-block";
     }
 
     // ==============================
-    // 🔹 ADMIN ONLY BUTTONS
-    // ==============================
-    if (role === "admin") {
-
-      const adminBtns =
-        document.querySelectorAll(".admin-only");
-
-      adminBtns.forEach(btn =>
-        btn.style.display = "inline-block"
-      );
-
-      const saveBtn =
-        document.getElementById("saveEditedMarksBtn");
-
-      if (saveBtn)
-        saveBtn.style.display = "inline-block";
-
-    }
-
-    // ==============================
-    // 🔹 SWEET ALERT MESSAGES
+    // 🔔 SWEETALERTS
     // ==============================
     if (typeof Swal !== "undefined") {
 
-      // ADMIN MESSAGE
-      if (role === "admin") {
-
+      if (isAdmin) {
         Swal.fire({
-          icon: "success",
-          title: "Login Successful",
-          text: "Welcome, Admin!",
+          icon: 'success',
+          title: 'Login Successful',
+          text: 'Welcome, Admin!',
           timer: 1500,
           showConfirmButton: false
         });
 
-      }
-
-      // PARENT MESSAGE
-      else if (role === "parent") {
-
-        if (typeof openModal === "function") {
-          openModal();
-        }
+      } else if (currentUser.role === "parent") {
+        openModal();
 
         Swal.fire({
-
-          title: `Welcome, ${username}!`,
-
+          title: `Welcome, ${currentUser.username}!`,
           html: `
             <p>🎉 Login Successful!</p>
-
             <p>Here's how to fetch your child's results:</p>
-
             <ol style="text-align:left;">
-              <li>Open Parent Lookup</li>
-              <li>Select your child</li>
+              <li>Use Parent Lookup</li>
               <li>Click Fetch Results</li>
+              <li>View results</li>
             </ol>
           `,
-
           icon: "success",
-          confirmButtonText: "OK"
-
+          confirmButtonText: "Got it!"
         });
 
-      }
-
-      // TEACHER MESSAGE
-      else if (role === "teacher") {
-
+      } else {
         Swal.fire({
-
-          icon: "success",
           title: "Login Successful",
-          text: `Welcome ${username}`,
+          text: `Welcome, ${currentUser.username}!`,
+          icon: "success",
           confirmButtonText: "Continue"
-
         });
-
       }
-
     }
 
+  } else {
+
+    const loginError = document.getElementById("loginError");
+    if (loginError) loginError.style.display = "block";
+
+    Swal?.fire({
+      icon: 'error',
+      title: 'Login Failed',
+      text: 'Incorrect username or password'
+    }) || alert("Login failed");
   }
-
-  // ==============================
-  // 🔹 LOGIN FAILED
-  // ==============================
-  else {
-
-    const loginError =
-      document.getElementById("loginError");
-
-    if (loginError)
-      loginError.style.display = "block";
-
-    if (typeof Swal !== "undefined") {
-
-      Swal.fire({
-
-        icon: "error",
-        title: "Login Failed",
-        text: "Incorrect username or password"
-
-      });
-
-    }
-
-    else {
-
-      alert("Login failed");
-
-    }
-
-  }
-
 });
-
 
 // ==============================
 // 🔹 USER BADGE
 // ==============================
 function showUserBadge(username, role, isAdmin) {
-
-  const badge =
-    document.getElementById("userBadge");
-
-  if (!badge) return;
+  const badge = document.getElementById("userBadge");
 
   badge.className = "badge";
 
-  if (role === "admin") {
-
-    badge.textContent =
-      `👑 Admin: ${username}`;
-
+  if (isAdmin) {
+    badge.textContent = `👑 Admin: ${username}`;
     badge.classList.add("badge-admin");
 
-  }
-
-  else if (role === "teacher") {
-
-    badge.textContent =
-      `👨‍🏫 Teacher: ${username}`;
-
+  } else if (role === "teacher") {
+    badge.textContent = `👨‍🏫 Teacher: ${username}`;
     badge.classList.add("badge-teacher");
 
-  }
-
-  else if (role === "parent") {
-
-    badge.textContent =
-      `👨‍👩‍👧 Parent: ${username}`;
-
+  } else if (role === "parent") {
+    badge.textContent = `👨‍👩‍👧 Parent: ${username}`;
     badge.classList.add("badge-parent");
 
+  } else {
+    badge.textContent = `👤 User: ${username}`;
   }
-
-  else {
-
-    badge.textContent =
-      `👤 User: ${username}`;
-
-  }
-
-}
-
-window.onload = function () {
-  const savedUser = JSON.parse(localStorage.getItem("loggedInUser"));
-
-  if (savedUser) {
-    document.getElementById("loginSection").style.display = "none";
-    document.getElementById("mainContent").style.display = "block";
-
-    showUserBadge(savedUser.username, savedUser.role, savedUser.isAdmin);
-    updateGreeting(savedUser.username);
-
-    // Update profile name
-    document.getElementById("profileName").textContent = savedUser.username;
-  }
-};
-
-function logout() {
-  // 🧹 Clear storage
-  localStorage.removeItem("loggedInUser");
-
-  // 🧹 Reset UI sections
-  document.getElementById("loginSection").style.display = "block";
-  document.getElementById("mainContent").style.display = "none";
-
-  // 🧹 Reset badge
-  const badge = document.getElementById("userBadge");
-  if (badge) {
-    badge.textContent = "👤 Guest";
-    badge.className = "badge";
-  }
-
-  // 🧹 Reset greeting
-  const greet = document.getElementById("greetingText");
-  if (greet) greet.textContent = "👋 Welcome!";
-
-  // 🧹 Hide profile menu
-  const menu = document.getElementById("profileMenu");
-  if (menu) menu.style.display = "none";
-
-  // 🧹 Reset online status
-  setOfflineStatus();
-
-  // Optional reload for clean state
-  location.reload();
 }
 function requireAdminAccess(actionName = "perform this action") {
   if (!isAdminLoggedIn) {
@@ -13592,21 +13326,22 @@ function renderTermComparison(term1Averages, term2Averages){
   }
 }
 
-function closeTeacherModal() {
-    const modal = document.getElementById("teacherModal");
-    if (!modal) return;
+  const teacherModal = document.getElementById("teacherModal");
 
-    modal.style.display = "none";
-    modal.classList.remove("show");
-}
+  function closeTeacherModal() {
+      teacherModal.style.display = "none";
+  }
 
-function openTeacherModal() {
-    const modal = document.getElementById("teacherModal");
-    if (!modal) return;
+  function openTeacherModal() {
+      teacherModal.style.display = "block";
+  }
 
-    modal.style.display = "flex";
-    modal.classList.add("show");
-}
+  // Close when clicking outside modal
+  window.addEventListener("click", function(event) {
+      if (event.target === teacherModal) {
+          closeTeacherModal();
+      }
+  });
 // ================= DOM References =================
 const parentGradeSelect = document.getElementById("parentGradeSelect");
 const parentLearnerSelect = document.getElementById("parentLearnerSelect");
@@ -16457,7 +16192,122 @@ function updateSchoolStatus() {
 }
 updateSchoolStatus();
 setInterval(updateSchoolStatus, 60000);
+// ===============================
+// 🔐 PAGE LOAD (SESSION CHECK)
+// ===============================
+window.onload = function () {
+  const savedSession = JSON.parse(localStorage.getItem("loggedInUser"));
+  const logoutBtn = document.getElementById("logoutBtn");
 
+  // ✅ Check if session exists
+  if (savedSession && savedSession.user && savedSession.expires) {
+
+    // ⏰ Check expiry
+    if (Date.now() > savedSession.expires) {
+      logout();
+      return;
+    }
+
+    const user = savedSession.user;
+
+    // ✅ Show main content
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("mainContent").style.display = "block";
+
+    // ✅ Show floating logout button
+    if (logoutBtn) logoutBtn.classList.remove("hidden");
+
+    // ✅ Restore user info
+    showUserBadge(user.username, user.role, user.isAdmin);
+    updateGreeting(user.username);
+
+    document.getElementById("profileName").textContent = user.username;
+
+    // ⏳ Auto logout after remaining time
+    const remainingTime = savedSession.expires - Date.now();
+    setTimeout(() => {
+      logout();
+    }, remainingTime);
+
+  } else {
+    // ❌ No session → force login
+    document.getElementById("loginSection").style.display = "block";
+    document.getElementById("mainContent").style.display = "none";
+
+    // ❌ Hide logout button
+    if (logoutBtn) logoutBtn.classList.add("hidden");
+  }
+};
+
+
+// ===============================
+// 🔓 LOGIN (SAVE SESSION)
+// ===============================
+function saveLoginSession(userData) {
+  const session = {
+    user: userData,
+    expires: Date.now() + (60 * 1000) // ⏰ 1 minute expiry
+  };
+
+  localStorage.setItem("loggedInUser", JSON.stringify(session));
+
+  // ✅ Show logout button immediately after login
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) logoutBtn.classList.remove("hidden");
+}
+
+
+// ===============================
+// 🚪 LOGOUT FUNCTION
+// ===============================
+function logout() {
+  // 🧹 Clear session
+  localStorage.removeItem("loggedInUser");
+
+  // 🧹 Reset UI
+  document.getElementById("loginSection").style.display = "block";
+  document.getElementById("mainContent").style.display = "none";
+
+  // ❌ Hide floating logout button
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) logoutBtn.classList.add("hidden");
+
+  // 🧹 Reset badge
+  const badge = document.getElementById("userBadge");
+  if (badge) {
+    badge.textContent = "👤 Guest";
+    badge.className = "badge";
+  }
+
+  // 🧹 Reset greeting
+  const greet = document.getElementById("greetingText");
+  if (greet) greet.textContent = "👋 Welcome!";
+
+  // 🧹 Hide profile menu
+  const menu = document.getElementById("profileMenu");
+  if (menu) menu.style.display = "none";
+
+  // 🧹 Offline status
+  if (typeof setOfflineStatus === "function") {
+    setOfflineStatus();
+  }
+
+  // 🔔 Optional alert
+  if (typeof Swal !== "undefined") {
+    Swal.fire({
+      icon: "success",
+      title: "Logged Out",
+      text: "Session ended.",
+      timer: 1500,
+      showConfirmButton: false
+    });
+  }
+
+  // 🔄 Clean reload
+  setTimeout(() => {
+    location.reload();
+  }, 1500);
+}
 // 🟢 Set online
 function setOnlineStatus() {
   const el = document.getElementById("onlineStatus");
@@ -16480,6 +16330,7 @@ function setOfflineStatus() {
 // Auto detect connection
 window.addEventListener("online", setOnlineStatus);
 window.addEventListener("offline", setOfflineStatus);
+
 </script>
 </body>
 </html>
