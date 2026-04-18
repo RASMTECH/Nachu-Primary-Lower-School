@@ -14565,7 +14565,6 @@ document.addEventListener("click", (e) => {
   });
 
 });
-
 // ================= LOAD GRADES & STUDENTS =================
 function loadFeeStudents() {
   const gradeSelect = document.getElementById("feeGrade");
@@ -16488,7 +16487,7 @@ window.sendBulkSMS = async function () {
   const defaulters = Object.entries(filteredFeeData).filter(([id, student]) => {
     let paid = 0;
     Object.values(student.fees || {}).forEach(v => paid += v);
-    return paid === 0 || paid < expected;
+    return paid < expected;
   });
 
   if (defaulters.length === 0) {
@@ -16496,7 +16495,10 @@ window.sendBulkSMS = async function () {
     return;
   }
 
-  let phones = [];
+  // =========================
+  // GROUP BY PHONE (avoid duplicates)
+  // =========================
+  const phoneMap = {};
 
   defaulters.forEach(([id, student]) => {
 
@@ -16506,37 +16508,117 @@ window.sendBulkSMS = async function () {
     let phone = option.getAttribute("data-phone");
     if (!phone) return;
 
-    phones.push(phone);
-  });
+    // =========================
+    // CLEAN PHONE
+    // =========================
+    let clean = phone.replace(/\s/g, "");
 
-  const message = `Fee Reminder: Your child has an outstanding balance. Kindly clear ASAP. Thank you.`;
+    if (clean.startsWith("+")) clean = clean.substring(1);
+    if (clean.startsWith("0")) clean = "254" + clean.substring(1);
+    if (!clean.startsWith("254")) clean = "254" + clean.slice(-9);
+
+    const finalPhone = `+${clean}`;
+
+    // =========================
+    // CALCULATE BALANCE
+    // =========================
+    let paid = 0;
+    Object.values(student.fees || {}).forEach(v => paid += v);
+    const balance = expected - paid;
+
+    // =========================
+    // GROUP PER PARENT
+    // =========================
+    if (!phoneMap[finalPhone]) {
+      phoneMap[finalPhone] = [];
+    }
+
+    phoneMap[finalPhone].push({
+      name: student.name || "Student",
+      balance
+    });
+  });
 
   try {
 
     Swal.fire({
-      title: "Sending SMS...",
+      title: "Sending Official Fee Statements...",
+      text: "Please wait while messages are being delivered",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading()
     });
 
-    const res = await fetch("http://localhost:3000/send-sms", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        phones: phones,
-        message: message
-      })
-    });
+    let successCount = 0;
+    let failCount = 0;
 
-    const data = await res.json();
+    const schoolName = "NACHU JUNIOR SCHOOL";
+    const today = new Date().toLocaleDateString();
 
-    if (data.success) {
-      Swal.fire("Success", "SMS sent successfully ✅", "success");
-    } else {
-      Swal.fire("Error", "Failed to send SMS", "error");
+    // =========================
+    // SEND PER PARENT
+    // =========================
+    for (const phone in phoneMap) {
+
+      const students = phoneMap[phone];
+
+      let total = 0;
+
+      let message =
+`${schoolName}
+FEE STATEMENT NOTICE
+Date: ${today}
+
+Dear Parent/Guardian,
+
+Below is the outstanding fee statement for your child(ren):
+
+`;
+
+      students.forEach((s, index) => {
+        message += `${index + 1}. ${s.name} - KES ${s.balance}\n`;
+        total += s.balance;
+      });
+
+      message += `
+TOTAL AMOUNT DUE: KES ${total}
+
+Please ensure payment is made at the earliest opportunity to avoid disruption of learning.
+
+For any inquiries, kindly contact the school office.
+
+Regards,
+Administration
+${schoolName}`;
+
+      try {
+        const res = await fetch("http://localhost:3000/send-sms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phones: [phone],
+            message
+          })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+
+      } catch (err) {
+        console.error("SMS error:", err);
+        failCount++;
+      }
     }
+
+    Swal.fire(
+      "Completed",
+      `SMS Sent: ${successCount}\nFailed: ${failCount}`,
+      "success"
+    );
 
   } catch (err) {
     console.error(err);
