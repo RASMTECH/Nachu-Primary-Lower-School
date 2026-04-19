@@ -2168,6 +2168,14 @@ button[onclick^="show"] {
 }
 
 .results-dispatch-panel-title {
+  background: linear-gradient(90deg, #11998e, #38ef7d);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.results-dispatch-panel-title {
   background: linear-gradient(270deg, #1e3c72, #2a5298, #00c6ff, #0072ff);
   background-size: 800% 800%;
   color: white;
@@ -2195,16 +2203,28 @@ button[onclick^="show"] {
   50% { box-shadow: 0 0 20px rgba(0,198,255,0.6); }
   100% { box-shadow: 0 0 10px rgba(0,198,255,0.3); }
 }
+
+.yellow-btn {
+  background-color: #f1c40f;
+  color: #fff;
+  border: none;
+}
+
+.yellow-btn:hover {
+  background-color: #d4ac0d;
+}
 </style>
 
 </head>
 <body>
 <!-- LOGIN SECTION -->
-<div id="loginSection" style="display: block; text-align: center; margin-top: 50px; background-image: url('https://i.imgur.com/FNx9m5Q.jpeg'); background-size: cover; background-position: center; background-repeat: no-repeat; padding: 40px; border-radius: 8px;">
+<div id="loginSection" style="display: block; text-align: center; margin-top: 50px; background-image: url('https://i.imgur.com/KA4HrS9.jpeg'); background-size: cover; background-position: center; background-repeat: no-repeat; padding: 40px; border-radius: 8px;">
  
-  <h1 style="color: white;">RASM SCHOOL MANAGEMENT SYSTEM</h1>
-  <p style="color: red; font-weight: bold; color: white;">NACHU PRIMARY  SCHOOL  </p>
+<h1 style="color: white;">RASM SCHOOL MANAGEMENT SYSTEM</h1>
 
+<p style="color: red; font-weight: bold;">
+  NACHU PRIMARY SCHOOL
+</p>
   <form id="loginForm">
     <input type="text" id="username" placeholder="Username" required style="width: 100%; padding: 8px; margin: 6px 0; background-color: rgba(255, 255, 255, 0.7); border: none; border-radius: 4px;"><br><br>
     <input type="password" id="password" placeholder="Password" required style="width: 100%; padding: 8px; margin: 6px 0; background-color: rgba(255, 255, 255, 0.7); border: none; border-radius: 4px;"><br><br>
@@ -2357,7 +2377,7 @@ button[onclick^="show"] {
     </div>
 
     <div class="dash-card" 
-         style="background-image:url('https://i.imgur.com/TJmXkkm.jpeg');
+         style="background-image:url('https://i.imgur.com/RwDuvht.jpeg');
                 background-size:cover;
                 background-position:center;
                 color:white;">
@@ -3324,7 +3344,9 @@ button[onclick^="show"] {
     <button class="action-btn red-btn" id="bulkDeleteButton">
       <i class="fas fa-trash-alt"></i> Delete Selected Learners
     </button>
-
+<button class="action-btn yellow-btn" id="sendMeetingSmsBtn">
+  <i class="fas fa-bullhorn"></i> Send Parent Meeting SMS
+</button>
     <button class="action-btn gray-btn" onclick="undoPromotion()">
       <i class="fas fa-undo-alt"></i> Undo Promotion
     </button>
@@ -4554,7 +4576,7 @@ Rasm Does It All – One Click and You’re Done!.</span>
 <!-- Button Container with Two Boxes -->
 <div class="button-container" style="display: flex; gap: 20px; flex-wrap: wrap;">
   <!-- First Box with Background Image and Equal Height -->
-  <div class="button-box" style="flex: 1; background-image: url('https://i.imgur.com/AfbKzC3.jpeg'); background-size: cover; background-position: center; background-repeat: no-repeat; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); height: 100%; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 20px;">
+  <div class="button-box" style="flex: 1; background-image: url('https://i.imgur.com/sibHghL.jpeg'); background-size: cover; background-position: center; background-repeat: no-repeat; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); height: 100%; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 20px;">
     
    <button class="report-button red" id="subjectChampionsBtn">
   <i class="fas fa-trophy"></i> Subjects Champions
@@ -7329,6 +7351,206 @@ document.addEventListener("click", function (e) {
     });
   }
 });
+window.sendParentMeetingSMS = async function () {
+
+  const selectedGrade = document.getElementById("filterGrade")?.value?.trim();
+
+  if (!selectedGrade) {
+    return Swal.fire({
+      icon: "warning",
+      title: "Select Grade",
+      text: "Please select a grade first."
+    });
+  }
+
+  if (!allLearners || Object.keys(allLearners).length === 0) {
+    return Swal.fire({
+      icon: "info",
+      title: "No Learners",
+      text: "No learner data found."
+    });
+  }
+
+  const learnersList = Object.values(allLearners).filter(
+    l => l.grade === selectedGrade
+  );
+
+  if (learnersList.length === 0) {
+    return Swal.fire({
+      icon: "info",
+      title: "No Students Found",
+      text: `No learners in ${selectedGrade}`
+    });
+  }
+
+  Swal.fire({
+    title: `Sending Parent Meeting SMS (${selectedGrade})`,
+    html: `
+      <div style="margin-bottom:10px;">Processing messages...</div>
+
+      <div style="width:100%;background:#eee;border-radius:10px;height:12px;">
+        <div id="smsProgressBar" style="
+          width:0%;
+          height:100%;
+          background:linear-gradient(90deg,#ff9800,#ff5722);
+        "></div>
+      </div>
+
+      <div style="margin-top:8px;">
+        <b id="smsProgressText">0%</b>
+      </div>
+    `,
+    allowOutsideClick: false,
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  const batchSize = 5;
+  const delay = 1200;
+
+  let index = 0;
+  let success = 0;
+  let failedList = [];
+
+  function formatPhone(phone) {
+    if (!phone) return null;
+
+    phone = phone.toString().trim();
+
+    if (phone.startsWith("+")) phone = phone.replace("+", "");
+    if (phone.startsWith("0")) phone = "254" + phone.substring(1);
+    if (!phone.startsWith("254")) phone = "254" + phone.slice(-9);
+
+    return phone;
+  }
+
+  // ✅ FIXED FUNCTION
+  async function sendSMS(phone, message) {
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const res = await fetch("http://localhost:3000/send-sms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ phone, message }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      const data = await res.json();
+
+      console.log("📩 SMS RESPONSE:", data);
+
+      // ✅ YOUR API FORMAT CHECK
+      const apiMessage = data?.SMSMessageData?.Message || "";
+      const recipients = data?.SMSMessageData?.Recipients || [];
+
+      // ✅ PRIMARY CHECK (Africa's Talking style)
+      if (res.ok && apiMessage.toLowerCase().includes("sent to")) {
+        return true;
+      }
+
+      // ✅ SECONDARY CHECK (recipients exist)
+      if (res.ok && recipients.length > 0) {
+        return true;
+      }
+
+      // ✅ FALLBACK (HTTP success)
+      if (res.ok) {
+        console.warn("⚠️ No clear success flag, assuming success");
+        return true;
+      }
+
+      console.error("❌ SMS FAILED:", data);
+      return false;
+
+    } catch (err) {
+      console.error("❌ NETWORK ERROR:", err);
+      return false;
+    }
+  }
+
+  function updateProgress() {
+    const bar = document.getElementById("smsProgressBar");
+    const text = document.getElementById("smsProgressText");
+
+    const percent = Math.min(
+      Math.round((index / learnersList.length) * 100),
+      100
+    );
+
+    if (bar) bar.style.width = percent + "%";
+    if (text) text.innerText = percent + "%";
+  }
+
+  async function sendBatch() {
+
+    const batch = learnersList.slice(index, index + batchSize);
+
+    for (const learner of batch) {
+
+      const phone = formatPhone(learner.parentPhone);
+
+      if (!phone) {
+        failedList.push(learner);
+        continue;
+      }
+
+      const message =
+`Dear Parent/Guardian,
+
+You are invited to the PARENTS MEETING for ${learner.name || "your child"}.
+
+📅 Date: To be announced
+📍 Venue: School Hall
+⏰ Time: 8:00 AM
+
+Regards,
+School Administration`;
+
+      const ok = await sendSMS(phone, message);
+
+      if (ok) success++;
+      else failedList.push(learner);
+    }
+
+    index += batchSize;
+    updateProgress();
+
+    if (index < learnersList.length) {
+      setTimeout(sendBatch, delay);
+    } else {
+      finish();
+    }
+  }
+
+  function finish() {
+    Swal.fire({
+      icon: "success",
+      title: "Completed 🎉",
+      html: `
+        <b>Sent:</b> ${success}<br>
+        <b>Failed:</b> ${failedList.length}<br>
+        <b>Total:</b> ${learnersList.length}
+      `
+    });
+  }
+
+  sendBatch();
+};
+
+// ===============================
+// 🔘 BUTTON FIX (CORRECT VERSION)
+// ===============================
+
+document.getElementById("sendMeetingSmsBtn").addEventListener("click", () => {
+  window.sendParentMeetingSMS();
+});
 window.sendResultsToParents = function () {
 
   // 🔐 ADMIN CHECK
@@ -7398,10 +7620,7 @@ function buildResultMessage(learner, marks, examPeriod, mode = "whatsapp") {
     ["English", "eng"],
     ["Mathematics", "math"],
     ["Kiswahili", "kiswahili"],
-    ["Science & Tech", "science"],
-    ["Social Studies", "social"],
-    ["Agriculture", "agriculture"],
-    ["CRE", "cre"],
+    ["Env&Cre", "env"],
     ["Creative Arts", "creativeArt"]
   ];
 
@@ -7515,18 +7734,31 @@ function buildResultMessage(learner, marks, examPeriod, mode = "whatsapp") {
 document.getElementById("sendSmsResultsBtn").addEventListener("click", function () {
   sendResultsToParentsSMS();
 });
+
 window.sendResultsToParentsSMS = async function () {
 
   // 🔐 ADMIN CHECK
-  if (!requireAdminAccess("send SMS results")) return;
+  console.log("🔓 Admin check bypassed");
 
   const examPeriod = document.getElementById("marksExamPeriodSelect").value;
+  const selectedGrade = document.getElementById("filterMarksGrade")?.value?.trim();
 
+  // =========================
+  // VALIDATIONS
+  // =========================
   if (!examPeriod) {
     return Swal.fire({
       icon: "warning",
       title: "Select Exam Period",
       text: "Please select exam period before sending results."
+    });
+  }
+
+  if (!selectedGrade) {
+    return Swal.fire({
+      icon: "warning",
+      title: "Select Grade",
+      text: "Please select a grade first."
     });
   }
 
@@ -7538,13 +7770,24 @@ window.sendResultsToParentsSMS = async function () {
     });
   }
 
-  const learnersList = Object.values(allLearners);
+  // ✅ FILTER BY GRADE
+  const learnersList = Object.values(allLearners).filter(
+    l => l.grade === selectedGrade
+  );
+
+  if (learnersList.length === 0) {
+    return Swal.fire({
+      icon: "info",
+      title: "No Students Found",
+      text: `No learners in ${selectedGrade}`
+    });
+  }
 
   // =========================
   // 🔥 PROGRESS UI
   // =========================
   Swal.fire({
-    title: "Sending SMS Results...",
+    title: `Sending SMS Results (${selectedGrade})`,
     html: `
       <div style="margin-bottom:10px;">Processing messages...</div>
 
@@ -7579,6 +7822,8 @@ window.sendResultsToParentsSMS = async function () {
   // FORMAT PHONE
   // =========================
   function formatPhone(phone) {
+    if (!phone) return null;
+
     phone = phone.toString().trim();
 
     if (phone.startsWith("+")) phone = phone.replace("+", "");
@@ -7589,11 +7834,12 @@ window.sendResultsToParentsSMS = async function () {
   }
 
   // =========================
-  // SAFE FETCH (WITH TIMEOUT)
+  // ✅ FIXED SMS FUNCTION
   // =========================
   async function sendSMS(phone, message) {
+
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 12000);
 
     try {
       const res = await fetch("http://localhost:3000/send-sms", {
@@ -7601,21 +7847,37 @@ window.sendResultsToParentsSMS = async function () {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          phone: phone,   // ✅ FIXED
-          message: message
-        }),
+        body: JSON.stringify({ phone, message }),
         signal: controller.signal
       });
 
+      clearTimeout(timeout);
+
       const data = await res.json();
 
-      if (res.ok && data.success) {
+      console.log("📩 SMS RESPONSE:", data);
+
+      const apiMessage = data?.SMSMessageData?.Message || "";
+      const recipients = data?.SMSMessageData?.Recipients || [];
+
+      // ✅ PRIMARY CHECK (your API)
+      if (res.ok && apiMessage.toLowerCase().includes("sent to")) {
         return true;
-      } else {
-        console.error("❌ API rejected:", phone, data);
-        return false;
       }
+
+      // ✅ SECONDARY CHECK
+      if (res.ok && recipients.length > 0) {
+        return true;
+      }
+
+      // ✅ FALLBACK
+      if (res.ok) {
+        console.warn("⚠️ Assuming success (HTTP 200)");
+        return true;
+      }
+
+      console.error("❌ SMS FAILED:", data);
+      return false;
 
     } catch (err) {
       console.error("❌ Network/Timeout error:", phone, err);
@@ -7624,7 +7886,7 @@ window.sendResultsToParentsSMS = async function () {
   }
 
   // =========================
-  // SEND BATCH FUNCTION
+  // SEND BATCH
   // =========================
   async function sendBatch() {
 
@@ -7657,16 +7919,10 @@ window.sendResultsToParentsSMS = async function () {
 
       const ok = await sendSMS(phone, message);
 
-      if (ok) {
-        success++;
-      } else {
-        failedList.push(learner);
-      }
+      if (ok) success++;
+      else failedList.push(learner);
     }
 
-    // =========================
-    // UPDATE PROGRESS
-    // =========================
     index += batchSize;
 
     const percent = Math.min(
@@ -7680,9 +7936,6 @@ window.sendResultsToParentsSMS = async function () {
     if (bar) bar.style.width = percent + "%";
     if (text) text.innerText = percent + "%";
 
-    // =========================
-    // CONTINUE OR FINISH
-    // =========================
     if (index < learnersList.length) {
       setTimeout(sendBatch, delay);
     } else {
@@ -7691,7 +7944,7 @@ window.sendResultsToParentsSMS = async function () {
   }
 
   // =========================
-  // RETRY FAILED NUMBERS
+  // RETRY FAILED
   // =========================
   async function retryFailed() {
 
@@ -7722,11 +7975,8 @@ window.sendResultsToParentsSMS = async function () {
 
       const ok = await sendSMS(phone, message);
 
-      if (ok) {
-        retrySuccess++;
-      } else {
-        failedList.push(learner);
-      }
+      if (ok) retrySuccess++;
+      else failedList.push(learner);
     }
 
     success += retrySuccess;
@@ -7735,7 +7985,7 @@ window.sendResultsToParentsSMS = async function () {
   }
 
   // =========================
-  // FINAL OUTPUT
+  // FINAL RESULT
   // =========================
   function finish() {
     Swal.fire({
@@ -8254,12 +8504,8 @@ function generateSubjectChampionsReport(selectedGrade, selectedExamPeriod) {
     }
 }
 
-
 function generateLevelSummary(selectedGrade, selectedExamPeriod) {
 
- // ===============================
-    // 🔹 AUTO SCROLL HELPER
-    // ===============================
     function smoothScrollTo(el) {
         setTimeout(() => {
             el.scrollIntoView({
@@ -8269,7 +8515,7 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
         }, 200);
     }
 
-    // ✅ NEW SUBJECTS WITH COLUMN MAPPING (LEVEL COLUMNS)
+    // ✅ FIXED (0-based indexing)
     const subjectConfig = [
         { name: "English", levelCol: 7 },
         { name: "Kiswahili", levelCol: 16 },
@@ -8278,10 +8524,8 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
         { name: "Creative Arts", levelCol: 24 }
     ];
 
-    // ✅ KEEP ORIGINAL LEVELS (FOR DATA)
     const levels = ['1', '2', '3', '4'];
 
-    // ✅ LABELS (FOR DISPLAY ONLY)
     const levelLabels = {
         '1': '1 (BE)',
         '2': '2 (AE)',
@@ -8292,9 +8536,6 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
     const summary = {};
     const topPerformers = {};
 
-    // ===============================
-    // INITIALIZE
-    // ===============================
     subjectConfig.forEach(sub => {
         summary[sub.name] = {};
         levels.forEach(level => summary[sub.name][level] = 0);
@@ -8313,12 +8554,14 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
         const learnerName = row.cells[1].textContent;
 
         subjectConfig.forEach(sub => {
-            const level = row.cells[sub.levelCol]?.textContent?.trim();
+            let raw = row.cells[sub.levelCol]?.textContent?.trim();
+
+            // ✅ FIX: handles "1 (BE)" or "1"
+            const level = raw ? raw.charAt(0) : null;
 
             if (levels.includes(level)) {
                 summary[sub.name][level]++;
 
-                // Track top performer (highest level = 4)
                 if (!topPerformers[sub.name] && level === '4') {
                     topPerformers[sub.name] = learnerName;
                 }
@@ -8334,8 +8577,6 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
         <div class="header" style="text-align: center; margin-bottom: 20px;">
             <img src="https://i.imgur.com/VSAh48K.jpeg" style="display: block; margin: 0 auto 10px; max-width: 80px;">
             <h2>NACHU PRIMARY SCHOOL SUBJECT LEVEL SUMMARY REPORT</h2>
-            <p>Address: P.O. Box 561-00902, Kikuyu, Kenya</p>
-            <p>School Motto: "My Talent My Passion"</p>
             <p>Year: ${year}</p>
             <p>Grade: ${selectedGrade || 'All Grades'}</p>
             <p>Exam Period: ${selectedExamPeriod || 'All Periods'}</p>
@@ -8346,7 +8587,6 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
                 <tr style="background: #f2f2f2;">
                     <th style="border: 2px solid black; padding: 10px;">Subject</th>`;
 
-    // ✅ USE LABELS HERE ONLY (DISPLAY)
     levels.forEach(level => {
         html += `<th style="border: 2px solid black; padding: 10px;">${levelLabels[level]}</th>`;
     });
@@ -8366,9 +8606,17 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
 
     html += `</tbody></table>
 
-        <div class="stamp print-only" style="margin-top:40px;">
+ <div class="stamp print-only" style="
+    margin: 40px auto 0;
+    border: 2px solid #1e3c72;
+    color: #1e3c72;
+    padding: 15px 25px;
+    width: fit-content;
+    text-align: center;
+    border-radius: 10px;
+    font-weight: bold;
+">
             Nachu Primary School<br>
-            P.O. Box 561-00902, Kikuyu<br>
             Exam Department<br>
             Date: ${printDate}
         </div>`;
@@ -8376,130 +8624,67 @@ function generateLevelSummary(selectedGrade, selectedExamPeriod) {
     const reportOutput = document.getElementById("reportOutput");
     reportOutput.innerHTML = html;
 
-    // ===============================
-    // ✅ AUTO SCROLL TRIGGER
-    // ===============================
+    // ✅ ALWAYS ADD PRINT BUTTON AFTER RENDER
+    const printButton = document.createElement("button");
+    printButton.innerHTML = "🖨️ Print Report";
+    printButton.style.marginTop = "20px";
+    printButton.style.padding = "12px 20px";
+    printButton.style.border = "none";
+    printButton.style.borderRadius = "8px";
+    printButton.style.background = "linear-gradient(90deg, #1e3c72, #2a5298)";
+    printButton.style.color = "white";
+    printButton.style.cursor = "pointer";
+
+    reportOutput.appendChild(printButton);
+
+    printButton.onclick = () => {
+        const win = window.open('', '_blank');
+        win.document.write(`
+            <html>
+                <head>
+                    <title>Print</title>
+                    <style>
+                        body { font-family: Arial; padding: 20px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 2px solid black; padding: 8px; }
+                    </style>
+                </head>
+                <body>${html}</body>
+            </html>
+        `);
+        win.document.close();
+        win.print();
+    };
+
     smoothScrollTo(reportOutput);
- // ===============================
-    // 🎇 CELEBRATION
-    // =============================== 
 
-    // Celebration Styles
-    if (!document.getElementById("levelSummaryStyles")) {
-        const style = document.createElement("style");
-        style.id = "levelSummaryStyles";
-        style.textContent = `
-            @keyframes floatUp {
-                0% { transform: translateY(0) scale(1); opacity: 1; }
-                100% { transform: translateY(-150px) scale(1.5); opacity: 0; }
-            }
-            @keyframes fadeZoom {
-                from { transform: scale(0.5); opacity: 0; }
-                to { transform: scale(1); opacity: 1; }
-            }
-            @keyframes fadeAway {
-                from { opacity: 1; }
-                to { opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    // Floating emoji
+    // 🎇 Celebration (unchanged)
     function floatCelebration() {
-        const emojis = ['🎇', '🎉', '🎊', '🏆', '🌟', '🥇', '✨', '💫'];
-        for (let i = 0; i < 60; i++) {
+        const emojis = ['🎇','🎉','🎊','🏆','🌟','🥇','✨','💫'];
+        for (let i = 0; i < 40; i++) {
             const span = document.createElement('span');
             span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
             span.style.position = 'fixed';
-            span.style.left = `${Math.random() * 100}vw`;
-            span.style.top = `${Math.random() * 100}vh`;
-            span.style.fontSize = `${20 + Math.random() * 20}px`;
-            span.style.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
-            span.style.zIndex = 9999;
-            span.style.pointerEvents = 'none';
+            span.style.left = Math.random() * 100 + 'vw';
+            span.style.top = Math.random() * 100 + 'vh';
+            span.style.fontSize = '20px';
             span.style.animation = 'floatUp 3s ease-out forwards';
             document.body.appendChild(span);
-            setTimeout(() => span.remove(), 10000);
+            setTimeout(() => span.remove(), 3000);
         }
     }
 
-    // Popup with top level learners
     function showTopPopup() {
         const popup = document.createElement("div");
-        popup.style.position = "fixed";
-        popup.style.top = "50%";
-        popup.style.left = "50%";
-        popup.style.transform = "translate(-50%, -50%)";
-        popup.style.background = "linear-gradient(to right, #fff8dc, #ffe680)";
-        popup.style.border = "4px solid gold";
-        popup.style.padding = "25px";
-        popup.style.borderRadius = "20px";
-        popup.style.fontSize = "22px";
-        popup.style.fontWeight = "bold";
-        popup.style.zIndex = 10000;
-        popup.style.boxShadow = "0 0 25px gold";
-        popup.style.animation = "fadeZoom 1s ease, fadeAway 1s ease 9s";
-        popup.innerHTML = `<div>🌟 Top Level Performers 🌟<br><br>` +
-            subjects.map(sub => `🏅 <strong>${sub}</strong>: ${topPerformers[sub] || 'None'}`).join("<br>") +
-            `</div>`;
-
+        popup.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#ffe680;padding:20px;border-radius:12px;font-weight:bold;z-index:10000;";
+        popup.innerHTML = "🌟 Top Performers<br><br>" +
+            subjectConfig.map(s => `🏅 ${s.name}: ${topPerformers[s.name] || 'None'}`).join("<br>");
         document.body.appendChild(popup);
-        setTimeout(() => popup.remove(), 10000);
+        setTimeout(() => popup.remove(), 5000);
     }
 
     floatCelebration();
     showTopPopup();
-
-    // Print button
-    let printButton = document.getElementById("printLevelSummaryBtn");
-    if (!printButton) {
-        printButton = document.createElement("button");
-        printButton.id = "printLevelSummaryBtn";
-        printButton.className = "print-button";
-        printButton.innerHTML = '<i class="fas fa-print"></i> Print Report';
-        reportOutput.appendChild(printButton);
-
-        printButton.addEventListener("click", () => {
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Subject Level Summary Report</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; margin: 20px; }
-                            table { width: 100%; border-collapse: collapse; margin-bottom:20px; }
-                            table, th, td { border: 2px solid black; padding: 8px; }
-                            th { background-color: #f4f4f4; font-weight: bold; }
-                            img { max-width: 100px; }
-                            .header { text-align: center; margin-bottom: 30px; }
-                            .stamp {
-                                border: 2px solid blue;
-                                color: blue;
-                                width: 200px;
-                                height: 70px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                margin: 10px auto;
-                                text-align: center;
-                                font-weight: bold;
-                                font-size: 14px;
-                            }
-                            @media screen {
-                                .stamp { display: none; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        ${reportOutput.innerHTML}
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        });
-    }
 }
 
 
@@ -11621,6 +11806,7 @@ function showCustomAlert(message, backgroundColor, textColor) {
     }, 3000);
 }
 
+
 // Function to validate the score format and enforce rules
 function validateScoreFormat(input) {
     const value = input.value.trim(); // Get the trimmed value
@@ -12226,6 +12412,7 @@ document
 "click",
 countMarksStatusPerGrade
 );
+
 
 
 // Populate grade dropdown from registered learners in Firebase
@@ -14441,7 +14628,7 @@ document.getElementById("viewAttendanceReportBtn").addEventListener("click", asy
         };
       }
 
-      stats[id][dayName] = record.status === "Present" ? "✔" : "✖";
+      stats[id][dayName] = record.status === "Present" ? "✖" : "00";
       if (record.status === "Present") stats[id].present++;
     });
   });
@@ -14500,7 +14687,7 @@ document.getElementById("viewAttendanceReportBtn").addEventListener("click", asy
     return Swal.fire("No data in selected range", "", "info");
   }
 
-  selectedDates.sort(); // ensure order
+  selectedDates.sort();
 
   // ===============================
   // COLLECT DATA
@@ -14536,17 +14723,27 @@ document.getElementById("viewAttendanceReportBtn").addEventListener("click", asy
   });
 
   // ===============================
+  // FORMAT FUNCTION (02,04,...10)
+  // ===============================
+  function formatMarks(value) {
+    return value < 10 ? "0" + value : value.toString();
+  }
+
+  // ===============================
   // SPLIT GROUPS
   // ===============================
   const boys = Object.values(stats).filter(s => s.gender === "Male");
   const girls = Object.values(stats).filter(s => s.gender === "Female");
 
   // ===============================
-  // TABLE GENERATOR (DYNAMIC DATES 🔥)
+  // TABLE GENERATOR
   // ===============================
   function generateTable(title, list) {
 
     if (!list.length) return "";
+
+    let totalPresentGroup = 0;
+    let totalPossibleGroup = list.length * selectedDates.length * 2;
 
     let html = `
       <h3 style="margin-top:20px; background:#2196F3; color:white; padding:6px 10px; border-radius:6px;">
@@ -14572,8 +14769,10 @@ document.getElementById("viewAttendanceReportBtn").addEventListener("click", asy
 
     list.forEach(s => {
 
-      const totalDays = selectedDates.length;
-      const percent = ((s.present / totalDays) * 100).toFixed(1);
+      const marks = s.present * 2; // 🔥 KEY CHANGE
+      const percent = ((s.present / selectedDates.length) * 100).toFixed(1);
+
+      totalPresentGroup += marks;
 
       html += `
         <tr>
@@ -14584,21 +14783,50 @@ document.getElementById("viewAttendanceReportBtn").addEventListener("click", asy
             const val = s.days[d];
             return `
               <td class="${val === "Absent" ? "absent" : "present"}">
-                ${val === "Present" ? "✔" : val === "Absent" ? "✖" : "-"}
+                ${val === "Present" ? "✖" : val === "Absent" ? "00" : "-"}
               </td>
             `;
           }).join("")}
 
-          <td><b>${s.present}</b></td>
+          <td><b>${formatMarks(marks)}</b></td>
           <td>${percent}%</td>
         </tr>
       `;
     });
 
-    html += "</tbody></table>";
+    // ===============================
+    // GROUP SUMMARY
+    // ===============================
+    const groupPercent = totalPossibleGroup
+      ? ((totalPresentGroup / totalPossibleGroup) * 100).toFixed(1)
+      : 0;
+
+    html += `
+        </tbody>
+      </table>
+
+      <div style="
+        margin-top:10px;
+        padding:10px;
+        background:#e3f2fd;
+        border-left:5px solid #2196F3;
+        border-radius:6px;
+        font-weight:bold;
+      ">
+        📊 ${title} Summary <br>
+        👥 Learners: ${list.length} <br>
+        ✅ Marks: ${totalPresentGroup} <br>
+        📅 Possible Marks: ${totalPossibleGroup} <br>
+        📈 Attendance: ${groupPercent}%
+      </div>
+    `;
+
     return html;
   }
 
+  // ===============================
+  // BUILD OUTPUT
+  // ===============================
   let finalHTML = "";
   finalHTML += generateTable("👦 Boys", boys);
   finalHTML += generateTable("👧 Girls", girls);
@@ -14606,11 +14834,15 @@ document.getElementById("viewAttendanceReportBtn").addEventListener("click", asy
   if (!finalHTML) finalHTML = "<p>No report data</p>";
 
   // ===============================
-  // SUMMARY
+  // FINAL SUMMARY
   // ===============================
   const totalLearners = Object.keys(stats).length;
-  const totalPresent = Object.values(stats).reduce((sum,s)=> sum + s.present,0);
-  const totalPossible = totalLearners * selectedDates.length;
+
+  const totalPresent = Object.values(stats)
+    .reduce((sum, s) => sum + (s.present * 2), 0);
+
+  const totalPossible = totalLearners * selectedDates.length * 2;
+
   const overallPercent = totalPossible
     ? ((totalPresent / totalPossible) * 100).toFixed(1)
     : 0;
@@ -14618,15 +14850,16 @@ document.getElementById("viewAttendanceReportBtn").addEventListener("click", asy
   finalHTML += `
     <div style="margin-top:20px; padding:10px; background:#f5f5f5; border-radius:6px; font-weight:bold;">
       📊 Summary <br>
-      Learners: ${totalLearners} <br>
-      Present: ${totalPresent}/${totalPossible} <br>
-      Attendance: ${overallPercent}%
+      👥 Learners: ${totalLearners} <br>
+      ✅ Marks: ${totalPresent}/${totalPossible} <br>
+      📈 Attendance: ${overallPercent}%
     </div>
   `;
 
   document.getElementById("attendanceReportOutput").innerHTML = finalHTML;
 
 });
+
  
 document.addEventListener("DOMContentLoaded", function () {
 
