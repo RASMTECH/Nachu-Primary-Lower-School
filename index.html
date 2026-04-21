@@ -2213,6 +2213,69 @@ button[onclick^="show"] {
 .yellow-btn:hover {
   background-color: #d4ac0d;
 }
+
+
+@media print {
+
+  /* Hide everything first */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only report */
+  #reportOutput,
+  #reportOutput * {
+    visibility: visible;
+  }
+
+  /* Position report */
+  #reportOutput {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* ================= HEADER CONTROL ================= */
+
+  #printHeader {
+    page-break-after: avoid;
+    break-after: avoid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  #printHeader img,
+  #printHeader h2,
+  #printHeader p {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* ================= TABLE CONTROL ================= */
+
+  table {
+    page-break-inside: auto;
+    width: 100%;
+  }
+
+  thead {
+    display: table-header-group; /* repeats header on each page */
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid black !important;
+  }
+
+  button {
+    display: none !important;
+  }
+}
 </style>
 
 </head>
@@ -4581,7 +4644,9 @@ Rasm Does It All – One Click and You’re Done!.</span>
    <button class="report-button red" id="subjectChampionsBtn">
   <i class="fas fa-trophy"></i> Subjects Champions
 </button>
-
+<button class="report-button green" id="generateMeritBtn">
+  <i class="fas fa-chart-bar"></i> Generate Merit List
+</button>
 <button class="report-button blue" id="subjectPerformanceBtn">
   <i class="fas fa-chart-line"></i> Subject Performance
 </button>
@@ -6713,9 +6778,49 @@ function updateMarksCoverage(totalLearners, learnersWithMarks) {
       ? "linear-gradient(90deg,#f7971e,#ffd200)"
       : "linear-gradient(90deg,#43e97b,#38f9d7)";
 }
+// ==============================
+// 📊 LIVE PROGRESS UPDATER
+// ==============================
+function updateProgress(loaded, total) {
+  requestAnimationFrame(() => {
+
+    const container = Swal.getHtmlContainer();
+    if (!container) return;
+
+    const countEl = container.querySelector("#countText");
+    const statusEl = container.querySelector("#statusText");
+    const bar = container.querySelector("#progressBar");
+
+    const percent = total ? Math.floor((loaded / total) * 100) : 0;
+
+    if (countEl) {
+      countEl.innerText = `${loaded} / ${total} learners (${percent}%)`;
+    }
+
+    if (bar) {
+      bar.style.width = percent + "%";
+    }
+
+    if (statusEl) {
+      if (percent < 30) {
+        statusEl.innerText = "🔍 Loading learner records...";
+      } else if (percent < 70) {
+        statusEl.innerText = "⚙️ Processing marks...";
+      } else if (percent < 100) {
+        statusEl.innerText = "📊 Almost done...";
+      } else {
+        statusEl.innerText = "✅ Finalizing...";
+      }
+    }
+  });
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 // ==============================
-// 📊 UNIFIED MARKS LOADER (CLEAN FINAL)
+// 📊 UNIFIED MARKS LOADER (LIVE VERSION)
 // ==============================
 function loadMarksUnified() {
 
@@ -6726,12 +6831,67 @@ function loadMarksUnified() {
 
   if (unsubscribeMarks) unsubscribeMarks();
 
-  unsubscribeMarks = onValue(learnersRef, (snapshot) => {
+  // =========================
+  // 🔥 LOADING UI (ENHANCED)
+  // =========================
+  Swal.fire({
+    title: 'Loading Marks...',
+    html: `
+      <div style="text-align:center">
 
-    marksTableBody.innerHTML = "";
+        <div class="loader"></div>
+
+        <div id="statusText" style="margin-top:10px;font-weight:500;">
+          Preparing data...
+        </div>
+
+        <div id="countText" style="margin-top:5px;color:#555;">
+          Starting...
+        </div>
+
+        <div style="margin-top:10px;">
+          <div style="
+            width:100%;
+            height:6px;
+            background:#eee;
+            border-radius:5px;
+            overflow:hidden;">
+            
+            <div id="progressBar" style="
+              height:100%;
+              width:0%;
+              background:#4285f4;
+              transition:width 0.2s ease;">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <style>
+        .loader {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          display: inline-block;
+          animation: bounce 1s infinite;
+          background:#4285f4;
+        }
+        @keyframes bounce {
+          0%, 80%, 100% { transform: scale(0.7); opacity:0.5; }
+          40% { transform: scale(1.3); opacity:1; }
+        }
+      </style>
+    `,
+    allowOutsideClick: false,
+    showConfirmButton: false
+  });
+
+  unsubscribeMarks = onValue(learnersRef, async (snapshot) => {
+
+    marksTableBody.innerHTML = [];
     window.loadedMarksLearners = [];
 
-    // ✅ ONLY MAIN SUBJECTS
     let sums = {
       eng_total: 0,
       kus_total: 0,
@@ -6743,6 +6903,8 @@ function loadMarksUnified() {
     };
 
     let learnersCount = 0;
+    let loadedCount = 0;
+
     const gradeGroups = {};
     const grades = new Set();
 
@@ -6763,7 +6925,6 @@ function loadMarksUnified() {
         (+marks.env_total || 0) +
         (+marks.ca || 0);
 
-      // ✅ FIXED LEVEL CALCULATION (NO reading, NO kus)
       const totalLevel =
         getLevel(marks.eng_total || 0) +
         getLevel(marks.kus_total || 0) +
@@ -6783,17 +6944,32 @@ function loadMarksUnified() {
       gradeGroups[data.grade].push(obj);
     });
 
+    const entries = Object.entries(gradeGroups);
+    const totalCount = entries.reduce((a, g) => a + g[1].length, 0);
+
     const fragment = document.createDocumentFragment();
 
-    Object.keys(gradeGroups).forEach(grade => {
+    // =========================
+    // ⚡ SMOOTH RENDER LOOP
+    // =========================
+    for (let g = 0; g < entries.length; g++) {
 
-      gradeGroups[grade].forEach((item, i) => {
+      const [grade, learners] = entries[g];
 
-        learnersCount++;
+      learners.forEach((item, i) => {
+
+        loadedCount++;
+
+        updateProgress(loadedCount, totalCount);
+
+        if (loadedCount % 10 === 0) {
+          requestAnimationFrame(() => {});
+        }
 
         const { data, marks, rowTotal, totalLevel } = item;
 
-        // ✅ ONLY MAIN SUBJECT SUMS
+        learnersCount++;
+
         sums.eng_total += (+marks.eng_total || 0);
         sums.kus_total += (+marks.kus_total || 0);
         sums.math += (+marks.math || 0);
@@ -6812,34 +6988,38 @@ function loadMarksUnified() {
           <td>${data.name}</td>
           <td>${data.grade}</td>
 
-          <td>${marks.eng || 0}</td>
-          <td>${marks.lang || 0}</td>
-          <td>${marks.wr || 0}</td>
-          <td>${marks.eng_total || 0}</td>
-          <td>${marks.eng_totalLev || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="eng">${marks.eng || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="lang">${marks.lang || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="wr">${marks.wr || 0}</td>
 
-          <td>${marks.reading || 0}</td>
-          <td>${marks.readingLev || 0}</td>
+          <td class="readonly">${marks.eng_total || 0}</td>
+          <td class="readonly">${marks.eng_totalLev || 0}</td>
 
-          <td>${marks.kusikiza || 0}</td>
-          <td>${marks.lugha || 0}</td>
-          <td>${marks.kuandi || 0}</td>
-          <td>${marks.kus_total || 0}</td>
-          <td>${marks.kus_totalLev || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="reading">${marks.reading || 0}</td>
+          <td class="readonly">${marks.readingLev || 0}</td>
 
-          <td>${marks.kus || 0}</td>
-          <td>${marks.kusLev || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="kusikiza">${marks.kusikiza || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="lugha">${marks.lugha || 0}</td>
 
-          <td>${marks.math || 0}</td>
-          <td>${marks.mathLev || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="kuandi">${marks.kuandi || 0}</td>
 
-          <td>${marks.envir || 0}</td>
-          <td>${marks.cre || 0}</td>
-          <td>${marks.env_total || 0}</td>
-          <td>${marks.env_totalLev || 0}</td>
+          <td class="readonly">${marks.kus_total || 0}</td>
+          <td class="readonly">${marks.kus_totalLev || 0}</td>
 
-          <td>${marks.ca || 0}</td>
-          <td>${marks.caLev || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="kus">${marks.kus || 0}</td>
+          <td class="readonly">${marks.kusLev || 0}</td>
+
+          <td contenteditable="true" class="edit mark" data-field="math">${marks.math || 0}</td>
+          <td class="readonly">${marks.mathLev || 0}</td>
+
+          <td contenteditable="true" class="edit mark" data-field="envir">${marks.envir || 0}</td>
+          <td contenteditable="true" class="edit mark" data-field="cre">${marks.cre || 0}</td>
+
+          <td class="readonly">${marks.env_total || 0}</td>
+          <td class="readonly">${marks.env_totalLev || 0}</td>
+
+          <td contenteditable="true" class="edit mark" data-field="ca">${marks.ca || 0}</td>
+          <td class="readonly">${marks.caLev || 0}</td>
 
           <td><b>${rowTotal}</b></td>
           <td><b>${totalLevel}</b></td>
@@ -6847,26 +7027,43 @@ function loadMarksUnified() {
 
         fragment.appendChild(tr);
       });
-    });
+    }
 
     marksTableBody.appendChild(fragment);
 
     updateTotalsAndAverages(sums, learnersCount);
     populateGradeSelectors(grades);
+
+    if (isAdminLoggedIn) enableMarksEditing();
+
     calculateTopStudents();
-    updateMarksCoverage(Object.keys(gradeGroups).length, learnersCount);
-// AFTER TABLE FILLS
-setTimeout(() => {
-  generateLevelsSummary();
-}, 500);
+    updateMarksCoverage(entries.length, learnersCount);
+
+    setTimeout(() => {
+      generateLevelsSummary();
+    }, 300);
+
+    Swal.close();
+
+    Swal.fire({
+      icon: "success",
+      title: "Marks Loaded",
+      text: `${learnersCount} students processed`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+
   });
 }
+
 // ===============================
-// 🔘 BUTTON (UNIFIED SAFE LOADER)
+// 🔘 BUTTON EVENT
 // ===============================
 document.getElementById("loadMarksByPeriodBtn")
   .addEventListener("click", () => {
-    const selectedExamPeriod = document.getElementById("marksExamPeriodSelect").value;
+
+    const selectedExamPeriod =
+      document.getElementById("marksExamPeriodSelect").value;
 
     if (!selectedExamPeriod) {
       showToast("Please select an exam period to view marks.", "error");
@@ -6875,7 +7072,6 @@ document.getElementById("loadMarksByPeriodBtn")
 
     loadMarksUnified();
   });
-
 
 // ===============================
 // 📊 GLOBAL REPORT STORAGE (IMPORTANT FIX)
@@ -7105,7 +7301,6 @@ function loadMarksTableForPeriod(examPeriod) {
   marksTableBody.innerHTML = "";
   const gradeGroups = {};
 
-  // ✅ CLEAN SUMS (ONLY MAIN SUBJECTS)
   let sums = {
     eng_total: 0,
     kus_total: 0,
@@ -7124,6 +7319,7 @@ function loadMarksTableForPeriod(examPeriod) {
     window.loadedMarksLearners = [];
 
     snapshot.forEach(childSnapshot => {
+
       const data = childSnapshot.val();
       const marks = data.marks?.[examPeriod];
 
@@ -7174,7 +7370,6 @@ function loadMarksTableForPeriod(examPeriod) {
 
         const { data, marks, rowTotal, totalLevel } = learner;
 
-        // ✅ ONLY MAIN SUBJECT SUMS
         sums.eng_total += (+marks.eng_total || 0);
         sums.kus_total += (+marks.kus_total || 0);
         sums.math += (+marks.math || 0);
@@ -7190,39 +7385,45 @@ function loadMarksTableForPeriod(examPeriod) {
         row.setAttribute("data-exam-period", examPeriod);
         row.setAttribute("data-key", learner.key);
 
+        // =========================
+        // ✏️ EDITABLE CELLS ADDED
+        // =========================
         row.innerHTML = `
           <td>${i + 1}</td>
           <td>${data.name}</td>
           <td>${data.grade}</td>
 
-          <td>${marks.eng || ''}</td>
-          <td>${marks.lang || ''}</td>
-          <td>${marks.wr || ''}</td>
-          <td>${marks.eng_total || ''}</td>
-          <td>${marks.eng_totalLev || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="eng">${marks.eng || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="lang">${marks.lang || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="wr">${marks.wr || ''}</td>
 
-          <td>${marks.reading || ''}</td>
-          <td>${marks.readingLev || ''}</td>
+          <td class="readonly">${marks.eng_total || ''}</td>
+          <td class="readonly">${marks.eng_totalLev || ''}</td>
 
-          <td>${marks.kusikiza || ''}</td>
-          <td>${marks.lugha || ''}</td>
-          <td>${marks.kuandi || ''}</td>
-          <td>${marks.kus_total || ''}</td>
-          <td>${marks.kus_totalLev || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="reading">${marks.reading || ''}</td>
+          <td class="readonly">${marks.readingLev || ''}</td>
 
-          <td>${marks.kus || ''}</td>
-          <td>${marks.kusLev || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="kusikiza">${marks.kusikiza || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="lugha">${marks.lugha || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="kuandi">${marks.kuandi || ''}</td>
 
-          <td>${marks.math || ''}</td>
-          <td>${marks.mathLev || ''}</td>
+          <td class="readonly">${marks.kus_total || ''}</td>
+          <td class="readonly">${marks.kus_totalLev || ''}</td>
 
-          <td>${marks.envir || ''}</td>
-          <td>${marks.cre || ''}</td>
-          <td>${marks.env_total || ''}</td>
-          <td>${marks.env_totalLev || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="kus">${marks.kus || ''}</td>
+          <td class="readonly">${marks.kusLev || ''}</td>
 
-          <td>${marks.ca || ''}</td>
-          <td>${marks.caLev || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="math">${marks.math || ''}</td>
+          <td class="readonly">${marks.mathLev || ''}</td>
+
+          <td contenteditable="true" class="edit mark" data-field="envir">${marks.envir || ''}</td>
+          <td contenteditable="true" class="edit mark" data-field="cre">${marks.cre || ''}</td>
+
+          <td class="readonly">${marks.env_total || ''}</td>
+          <td class="readonly">${marks.env_totalLev || ''}</td>
+
+          <td contenteditable="true" class="edit mark" data-field="ca">${marks.ca || ''}</td>
+          <td class="readonly">${marks.caLev || ''}</td>
 
           <td><strong>${rowTotal}</strong></td>
           <td><strong>${totalLevel}</strong></td>
@@ -7242,7 +7443,9 @@ function loadMarksTableForPeriod(examPeriod) {
 
     const divisor = learnersWithMarks || 1;
 
-    // ✅ CLEAN TOTALS ROW
+    // =========================
+    // TOTALS ROW
+    // =========================
     document.getElementById("totalsRow").innerHTML = `
       <td colspan="3"><strong>Totals</strong></td>
 
@@ -7269,7 +7472,9 @@ function loadMarksTableForPeriod(examPeriod) {
       <td></td>
     `;
 
-    // ✅ CLEAN AVERAGES ROW
+    // =========================
+    // AVERAGES ROW
+    // =========================
     document.getElementById("averagesRow").innerHTML = `
       <td colspan="3"><strong>Averages</strong></td>
 
@@ -10623,9 +10828,383 @@ function combineMarksByGradeWithDetails(mainGrade, selectedPeriod) {
     showEmojis();
     showPopup(0);
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("generateMeritBtn");
 
+  btn.addEventListener("click", () => {
+    const selectedGrade = document.getElementById("reportGradeSelect")?.value;
+    const selectedExamPeriod = document.getElementById("reportExamPeriodSelect")?.value;
 
+    if (!selectedGrade || !selectedExamPeriod) {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'warning',
+        title: 'Please select grade and exam period',
+        timer: 3000,
+        showConfirmButton: false
+      });
+      return;
+    }
 
+    generateMeritList(selectedGrade, selectedExamPeriod);
+  });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("generateMeritBtn");
+
+  btn.addEventListener("click", () => {
+    const selectedGrade = document.getElementById("reportGradeSelect")?.value;
+    const selectedPeriod = document.getElementById("reportExamPeriodSelect")?.value;
+
+    if (!selectedGrade || !selectedPeriod) {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'warning',
+        title: 'Please select grade and exam period',
+        timer: 3000,
+        showConfirmButton: false
+      });
+      return;
+    }
+
+    generateMeritList(selectedGrade, selectedPeriod);
+  });
+});
+
+window.generateMeritList = function (mainGrade, selectedPeriod) {
+
+  const loader = document.createElement("div");
+  loader.innerHTML = `
+  <div style="position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.5);display:flex;align-items:center;
+  justify-content:center;color:white;z-index:9999;">
+    Generating Merit List...
+  </div>`;
+  document.body.appendChild(loader);
+
+  setTimeout(() => {
+
+    const printDate = new Date().toLocaleDateString();
+
+    const rows = document.querySelectorAll("#marksList tr");
+    const learnersData = [];
+
+    const totals = {
+      eng_total: 0,
+      reading: 0,
+      kus_total: 0,
+      kus: 0,
+      math: 0,
+      env_total: 0,
+      ca: 0,
+      totalMarks: 0,
+      totalLevel: 0
+    };
+
+    let learnerCount = 0;
+
+    const normalize = v =>
+      (v || "").toString().trim().toLowerCase().replace(/\s+/g, "");
+
+    rows.forEach(row => {
+
+      const gradeText = normalize(row.getAttribute("data-grade"));
+      const periodAttr = normalize(row.getAttribute("data-exam-period"));
+
+      if (gradeText !== normalize(mainGrade) || periodAttr !== normalize(selectedPeriod)) return;
+
+      const c = row.querySelectorAll("td");
+      if (c.length < 26) return;
+
+      const l = {
+        name: c[1].textContent.trim(),
+        grade: c[2].textContent.trim(),
+
+        eng: +c[3].textContent || 0,
+        lang: +c[4].textContent || 0,
+        wr: +c[5].textContent || 0,
+        eng_total: +c[6].textContent || 0,
+        eng_totalLev: +c[7].textContent || 0,
+        reading: +c[8].textContent || 0,
+        readingLev: +c[9].textContent || 0,
+
+        kusikiza: +c[10].textContent || 0,
+        lugha: +c[11].textContent || 0,
+        kuandi: +c[12].textContent || 0,
+        kus_total: +c[13].textContent || 0,
+        kus_totalLev: +c[14].textContent || 0,
+        kus: +c[15].textContent || 0,
+        kusLev: +c[16].textContent || 0,
+
+        math: +c[17].textContent || 0,
+        mathLev: +c[18].textContent || 0,
+
+        envir: +c[19].textContent || 0,
+        cre: +c[20].textContent || 0,
+        env_total: +c[21].textContent || 0,
+        env_totalLev: +c[22].textContent || 0,
+
+        ca: +c[23].textContent || 0,
+        caLev: +c[24].textContent || 0
+      };
+
+      l.totalMarks =
+        l.eng_total + l.kus_total + l.math + l.env_total + l.ca;
+
+      l.totalLevel =
+        getLevel(l.eng_total) +
+        getLevel(l.reading) +
+        getLevel(l.kus_total) +
+        getLevel(l.kus) +
+        getLevel(l.math) +
+        getLevel(l.env_total) +
+        getLevel(l.ca);
+
+      learnersData.push(l);
+
+      totals.eng_total += l.eng_total;
+      totals.reading += l.reading;
+      totals.kus_total += l.kus_total;
+      totals.kus += l.kus;
+      totals.math += l.math;
+      totals.env_total += l.env_total;
+      totals.ca += l.ca;
+      totals.totalMarks += l.totalMarks;
+      totals.totalLevel += l.totalLevel;
+
+      learnerCount++;
+    });
+
+    if (!learnersData.length) {
+      loader.remove();
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: 'No data found',
+        timer: 3000,
+        showConfirmButton: false
+      });
+      return;
+    }
+
+    learnersData.sort((a, b) => b.totalMarks - a.totalMarks);
+
+    const avg = v => learnerCount ? (v / learnerCount).toFixed(2) : "0.00";
+    const year = new Date().getFullYear();
+    const border = "border:2px solid black;padding:4px;text-align:center;color:black;";
+
+    let html = `
+    <div id="reportOutput">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <img src="https://i.imgur.com/VSAh48K.jpeg" style="width:80px;">
+        <div style="text-align:center;">
+          <h2 style="color:black;">MERIT LIST REPORT</h2>
+          <p style="color:black;"><b>NACHU PRIMARY SCHOOL</b></p>
+          <p style="color:black;">Grade: ${mainGrade} | Period: ${selectedPeriod} | Year: ${year}</p>
+        </div>
+        <button onclick="window.print()" style="padding:8px;background:#007bff;color:white;border:none;border-radius:5px;">
+          Print
+        </button>
+      </div>
+
+      <table style="width:150%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#eee;color:black;">
+            <th style="${border}">#</th>
+            <th style="${border}">Name</th>
+            <th style="${border}">Grade</th>
+
+            <th style="${border}">Eng</th>
+            <th style="${border}">Lang</th>
+            <th style="${border}">Wr</th>
+            <th style="${border}">E.Tot</th>
+            <th style="${border}">E.Lvl</th>
+
+            <th style="${border}">Read</th>
+            <th style="${border}">R.Lvl</th>
+
+            <th style="${border}">K.Tot</th>
+            <th style="${border}">K.Lvl</th>
+
+            <th style="${border}">Math</th>
+            <th style="${border}">M.Lvl</th>
+
+            <th style="${border}">EnvTot</th>
+            <th style="${border}">EnvLvl</th>
+
+            <th style="${border}">CA</th>
+            <th style="${border}">CA Lvl</th>
+
+            <th style="${border}">Total</th>
+            <th style="${border}">Level</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    learnersData.forEach((l, i) => {
+      html += `
+      <tr>
+        <td style="${border}">${i + 1}</td>
+        <td style="${border}">${l.name}</td>
+        <td style="${border}">${l.grade}</td>
+
+        <td style="${border}">${l.eng}</td>
+        <td style="${border}">${l.lang}</td>
+        <td style="${border}">${l.wr}</td>
+        <td style="${border}">${l.eng_total}</td>
+        <td style="${border}">${l.eng_totalLev}</td>
+
+        <td style="${border}">${l.reading}</td>
+        <td style="${border}">${l.readingLev}</td>
+
+        <td style="${border}">${l.kus_total}</td>
+        <td style="${border}">${l.kus_totalLev}</td>
+
+        <td style="${border}">${l.math}</td>
+        <td style="${border}">${l.mathLev}</td>
+
+        <td style="${border}">${l.env_total}</td>
+        <td style="${border}">${l.env_totalLev}</td>
+
+        <td style="${border}">${l.ca}</td>
+        <td style="${border}">${l.caLev}</td>
+
+        <td style="${border}"><b>${l.totalMarks}</b></td>
+        <td style="${border}"><b>${l.totalLevel}</b></td>
+      </tr>`;
+    });
+
+    // TOTAL & AVERAGE
+    html += `
+    <tr style="background:#ffe082;font-weight:bold;color:black;">
+      <td colspan="3" style="${border}">TOTAL</td>
+      <td colspan="4" style="${border}">${totals.eng_total}</td>
+      <td></td>
+      <td colspan="2" style="${border}">${totals.reading}</td>
+      <td colspan="2" style="${border}">${totals.kus_total}</td>
+      <td style="${border}">${totals.math}</td>
+      <td></td>
+      <td style="${border}">${totals.env_total}</td>
+      <td></td>
+      <td style="${border}">${totals.ca}</td>
+      <td></td>
+      <td style="${border}">${totals.totalMarks}</td>
+      <td style="${border}">${totals.totalLevel}</td>
+    </tr>
+
+    <tr style="background:#c8e6c9;font-weight:bold;color:black;">
+      <td colspan="3" style="${border}">AVERAGE</td>
+      <td colspan="4" style="${border}">${avg(totals.eng_total)}</td>
+      <td></td>
+      <td colspan="2" style="${border}">${avg(totals.reading)}</td>
+      <td colspan="2" style="${border}">${avg(totals.kus_total)}</td>
+      <td style="${border}">${avg(totals.math)}</td>
+      <td></td>
+      <td style="${border}">${avg(totals.env_total)}</td>
+      <td></td>
+      <td style="${border}">${avg(totals.ca)}</td>
+      <td></td>
+      <td style="${border}">${avg(totals.totalMarks)}</td>
+      <td style="${border}">${avg(totals.totalLevel)}</td>
+    </tr>
+    </tbody></table>
+    `;
+
+    // SUBJECT LEVEL SUMMARY
+    const levelSummary = {
+      eng_total: { name: "English", levels: {} },
+      kus_total: { name: "Kiswahili", levels: {} },
+      math: { name: "Mathematics", levels: {} },
+      env_total: { name: "Environment", levels: {} },
+      ca: { name: "Creative Arts", levels: {} }
+    };
+
+    Object.keys(levelSummary).forEach(k => {
+      for (let i = 1; i <= 4; i++) levelSummary[k].levels[i] = 0;
+    });
+
+    learnersData.forEach(l => {
+      Object.keys(levelSummary).forEach(k => {
+        const lvl = getLevel(l[k] || 0);
+        if (levelSummary[k].levels[lvl] !== undefined) {
+          levelSummary[k].levels[lvl]++;
+        }
+      });
+    });
+
+    html += `
+    <br><br>
+    <h3 style="text-align:center;color:black;">📊 SUBJECT LEVEL SUMMARY</h3>
+
+    <table style="width:70%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#eee;color:black;">
+          <th style="${border}">Subject</th>
+          ${[1,2,3,4].map(l => `<th style="${border}">L${l}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+    `;
+
+    Object.keys(levelSummary).forEach(k => {
+      const s = levelSummary[k];
+      html += `
+      <tr>
+        <td style="${border}"><b>${s.name}</b></td>
+        ${[1,2,3,4].map(l => `<td style="${border}">${s.levels[l]}</td>`).join('')}
+      </tr>`;
+    });
+
+    html += `</tbody></table>`;
+
+    // ================= SIGNATURES + UPDATED STAMP =================
+   html += `
+<br><br><br>
+
+<div style="width:100%;display:flex;justify-content:space-between;align-items:flex-end;color:black;gap:10px;">
+
+  <!-- Class Teacher -->
+  <div style="width:30%;text-align:center;">
+    <div style="border-top:2px solid black;margin-top:60px;"></div>
+    <p><b>Class Teacher</b></p>
+    <p>Sign: ____________________</p>
+  
+  </div>
+
+      ___________________________<br>
+                Exam Officer
+            </div>
+        </div>
+
+        <br><br>
+
+    <!-- ================= STAMP ================= -->
+        <div class="stamp" style="text-align:center; border:1px dashed black; padding:10px; width:300px; margin:auto;">
+            Nachu Primary School<br>
+            P.O. Box 561-00902, Kikuyu<br>
+            Exam Department<br>
+            Date: ${printDate}
+        </div>
+
+        </div>`;
+
+    document.getElementById("reportOutput").innerHTML = html;
+
+    setTimeout(() => {
+      document.getElementById("reportOutput")
+        .scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 300);
+
+    loader.remove();
+
+  }, 800);
+};
 const filterGender = document.getElementById('filterGender');
 
 filterGender.addEventListener('change', () => {
@@ -13221,162 +13800,179 @@ function requireAdminAccess(actionName = "perform this action") {
   }
   return true;
 }
+let marksChangeBuffer = [];
+let saveTimer = null;
+let lastSnapshot = null;
+
+// ==============================
+// 📚 SUBJECTS (SOURCE OF TRUTH)
+// ==============================
+const subjects = [
+  "eng",
+  "lang",
+  "wr",
+  "reading",
+  "kusikiza",
+  "lugha",
+  "kuandi",
+  "kus",
+  "math",
+  "envir",
+  "cre",
+  "ca"
+];
+
+// ==============================
+// ✏️ ENABLE EDITING
+// ==============================
 function enableMarksEditing() {
   if (!isAdminLoggedIn) return;
 
-  const marksExamPeriodSelect = document.getElementById("marksExamPeriodSelect");
-  if (!marksExamPeriodSelect) {
-    console.error("marksExamPeriodSelect not found!");
-    return;
-  }
+  const table = document.querySelector("#marksList");
+  if (!table) return;
 
-  const cells = document.querySelectorAll("#marksList td[data-editable='true']");
-  const editedRows = new Set();
+  const cells = table.querySelectorAll("td[data-editable='true']");
 
-  // --- Enable editing & track changes ---
   cells.forEach(cell => {
     cell.contentEditable = true;
-    cell.style.backgroundColor = "#fff8dc";
-    cell.style.border = "1px solid #ff9800";
+    cell.classList.add("editable-mark-cell");
 
-    if (!cell.dataset.original) cell.dataset.original = cell.innerText.trim();
-
-    const updateTotals = () => {
-      const row = cell.closest("tr");
-      if (!row) return;
-
-      // Update total & average instantly
-      const cellValues = row.querySelectorAll("td[data-editable='true']");
-      const marks = Array.from(cellValues).map(c => parseFloat(c.innerText) || 0);
-      const total = marks.reduce((a, b) => a + b, 0);
-      const average = total / marks.length;
-
-      row.querySelector(".total")?.innerText && (row.querySelector(".total").innerText = total.toFixed(2));
-      row.querySelector(".average")?.innerText && (row.querySelector(".average").innerText = average.toFixed(2));
-      row.querySelector(".grandTotal")?.innerText && (row.querySelector(".grandTotal").innerText = total.toFixed(2));
-    };
-
-    const markEdited = () => {
-      const row = cell.closest("tr");
-      if (!row) return;
-      if (cell.innerText.trim() !== (cell.dataset.original || "")) {
-        editedRows.add(row);
-        cell.style.border = "2px dashed #ffa500"; // unsaved
-      }
-      updateTotals(); // ✅ live totals & averages
-    };
-
-    cell.addEventListener("input", markEdited);
-    cell.addEventListener("keyup", markEdited);
-    cell.addEventListener("blur", markEdited);
-    cell.addEventListener("paste", () => setTimeout(markEdited, 50));
-  });
-
-  // --- Floating Save Button ---
-  let saveBtn = document.querySelector("#bulkSaveButton");
-  if (!saveBtn) {
-    saveBtn = document.createElement("button");
-    saveBtn.id = "bulkSaveButton";
-    saveBtn.innerText = "💾 Save Changes";
-    saveBtn.style.position = "fixed";
-    saveBtn.style.bottom = "20px";
-    saveBtn.style.right = "20px";
-    saveBtn.style.zIndex = "9999";
-    saveBtn.style.padding = "10px 20px";
-    saveBtn.style.backgroundColor = "#28a745";
-    saveBtn.style.color = "#fff";
-    saveBtn.style.border = "none";
-    saveBtn.style.borderRadius = "8px";
-    saveBtn.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
-    saveBtn.style.cursor = "pointer";
-    document.body.appendChild(saveBtn);
-  }
-
-  // --- Save Function ---
-  const saveChanges = () => {
-    if (editedRows.size === 0) {
-      Swal.fire({ toast: true, position: "top-end", icon: "info", title: "No changes to save", timer: 1500 });
-      return;
-    }
-
-    editedRows.forEach(row => {
-      const learnerKey = row.dataset.key;
-      const examPeriod = marksExamPeriodSelect.value;
-      const learnerName = row.querySelector(".learner-name")?.innerText || "Learner";
-      if (!learnerKey || !examPeriod) return;
-
-      const cellValues = row.querySelectorAll("td[data-editable='true']");
-      const marks = {
-        eng: parseFloat(cellValues[0].innerText) || 0,
-        math: parseFloat(cellValues[1].innerText) || 0,
-        preTech: parseFloat(cellValues[2].innerText) || 0,
-        kiswahili: parseFloat(cellValues[3].innerText) || 0,
-        science: parseFloat(cellValues[4].innerText) || 0,
-        social: parseFloat(cellValues[5].innerText) || 0,
-        agriculture: parseFloat(cellValues[6].innerText) || 0,
-        cre: parseFloat(cellValues[7].innerText) || 0,
-        creativeArt: parseFloat(cellValues[8].innerText) || 0
-      };
-
-      const total = Object.values(marks).reduce((a,b)=>a+b,0);
-      const average = total / Object.values(marks).length;
-
-      const learnerMarksRef = ref(db, `learners/${learnerKey}/marks/${examPeriod}`);
-      update(learnerMarksRef, {...marks, total, average})
-        .then(() => {
-          cellValues.forEach(c => { c.dataset.original = c.innerText.trim(); c.style.border = "2px solid green"; setTimeout(() => {c.style.border="1px solid #ff9800"},1500) });
-          
-          // Row flash
-          row.style.transition = "background-color 0.3s ease";
-          row.style.backgroundColor = "#d4edda";
-          setTimeout(()=>{row.style.backgroundColor=""},800);
-
-          Swal.fire({toast:true, position:"top-end", icon:"success", title:`✅ Marks saved for ${learnerName}`, showConfirmButton:false, timer:1500});
-          updateMeritList();
-        })
-        .catch(err=>console.error("Save error", err));
+    // Save original value when user starts editing
+    cell.addEventListener("focus", () => {
+      cell.dataset.originalValue = cell.innerText;
     });
-    editedRows.clear();
-  };
 
-  saveBtn.addEventListener("click", saveChanges);
+    // ✅ RIGHT-CLICK UNDO
+    cell.addEventListener("contextmenu", (e) => {
+      e.preventDefault(); // stop browser menu
 
-  // --- Auto-save every 5 seconds ---
-  setInterval(()=>{if(editedRows.size>0) saveChanges()},5000);
-
-  console.log("✅ Real-time marks editor enabled with live totals, averages, and auto-save.");
-}// Update total & average for a single learner row
-function updateRowTotals(row, marks) {
-  const total = Object.values(marks).reduce((sum, val) => sum + val, 0);
-  const avg = total / Object.keys(marks).length;
-
-  const totalCell = row.querySelector("td.total");
-  const avgCell = row.querySelector("td.average");
-
-  if (totalCell) totalCell.innerText = total.toFixed(1);
-  if (avgCell) avgCell.innerText = avg.toFixed(1);
-}
-
-// Recompute merit list (sorting all learners by total)
-function updateMeritList() {
-  const rows = Array.from(document.querySelectorAll("#marksList tbody tr"));
-  rows.sort((a, b) => {
-    const totalA = parseFloat(a.querySelector("td.total")?.innerText) || 0;
-    const totalB = parseFloat(b.querySelector("td.total")?.innerText) || 0;
-    return totalB - totalA; // descending
-  });
-
-  const tbody = document.querySelector("#marksList tbody");
-  rows.forEach((row, index) => {
-    // Update rank
-    const rankCell = row.querySelector("td.rank");
-    if (rankCell) rankCell.innerText = index + 1;
-
-    // Re-append rows in correct order
-    tbody.appendChild(row);
+      const original = cell.dataset.originalValue;
+      if (original !== undefined) {
+        cell.innerText = original;
+      }
+    });
   });
 }
+// ==============================
+// 📦 QUEUE UPDATES (FIXED SUBJECT MAPPING)
+// ==============================
+function queueMarkUpdate(cell) {
 
+  const row = cell.closest("tr");
+  if (!row) return;
+
+  const learnerKey = row.dataset.key;
+  const examPeriod = row.dataset.examPeriod || marksExamPeriodSelect.value;
+
+  if (!learnerKey || !examPeriod) return;
+
+  const cells = row.querySelectorAll("td.edit.mark");
+
+  const marks = {};
+
+  cells.forEach((c, i) => {
+
+    const subject = subjects[i];
+    if (!subject) return;
+
+    let val = parseFloat(c.innerText.trim());
+
+    if (isNaN(val)) val = 0;
+    if (val < 0) val = 0;
+    if (val > 100) val = 100;
+
+    c.innerText = val;
+
+    marks[subject] = val;
+  });
+
+  marksChangeBuffer.push({
+    learnerKey,
+    examPeriod,
+    marks
+  });
+
+  showSavingState();
+
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushMarkUpdates, 1000);
+}
+
+// ==============================
+// 💾 FLUSH UPDATES (BATCH SAVE)
+// ==============================
+async function flushMarkUpdates() {
+
+  if (marksChangeBuffer.length === 0) return;
+
+  const updates = [...marksChangeBuffer];
+  marksChangeBuffer = [];
+
+  try {
+
+    const promises = updates.map(item => {
+
+      const refPath = ref(
+        db,
+        `learners/${item.learnerKey}/marks/${item.examPeriod}`
+      );
+
+      return update(refPath, item.marks);
+    });
+
+    await Promise.all(promises);
+
+    showSavedState();
+
+  } catch (error) {
+
+    console.error("Batch save error:", error);
+    showErrorState();
+  }
+}
+
+// ==============================
+// 🔔 UI STATES
+// ==============================
+function showSavingState() {
+  Swal.fire({
+    toast: true,
+    position: "top-end",
+    icon: "info",
+    title: "Saving changes...",
+    showConfirmButton: false,
+    timer: 700
+  });
+}
+
+function showSavedState() {
+  Swal.fire({
+    toast: true,
+    position: "top-end",
+    icon: "success",
+    title: "Saved successfully",
+    showConfirmButton: false,
+    timer: 1200
+  });
+}
+
+function showErrorState() {
+  Swal.fire({
+    icon: "error",
+    title: "Save failed",
+    text: "Check internet connection",
+    timer: 2500
+  });
+}
+
+// ==============================
+// ↩️ UNDO LAST EDIT
+// ==============================
+function undoLastEdit(cell) {
+  if (lastSnapshot !== null) {
+    cell.innerText = lastSnapshot;
+  }
+}
 import { get, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
 // 🔁 Promote learners in the "learners" node (admin-only)
