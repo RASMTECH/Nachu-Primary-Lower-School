@@ -2338,8 +2338,20 @@ button[onclick^="show"] {
 <body>
 <!-- LOGIN SECTION -->
 <div id="loginSection" style="display: block; text-align: center; margin-top: 50px; background-image: url('https://i.imgur.com/KA4HrS9.jpeg'); background-size: cover; background-position: center; background-repeat: no-repeat; padding: 40px; border-radius: 8px;">
- 
-<h1 style="color: white;">RASM SCHOOL MANAGEMENT SYSTEM</h1>
+<div style="text-align:center; margin: 10px 0;">
+  <h1 style="
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 32px;
+    letter-spacing: 2px;
+    border: 1px solid rgba(255,255,255,0.2);
+  ">
+    RASM 360
+  </h1>
+</div>
 
 <p style="color: red; font-weight: bold;">
   NACHU PRIMARY SCHOOL
@@ -2629,7 +2641,12 @@ button[onclick^="show"] {
         <i class="fas fa-comments"></i>
         Communication Center
       </button>
-
+<!-- ================= PAYROLL ================= -->
+<button type="button" id="payrollControlBtn" class="learner-uniform-btn"
+  style="background:rgba(255,255,255,0.9); color:#2e7d32;">
+  <i class="fas fa-money-bill-wave"></i>
+  Payroll Management
+</button>
     </div>
 
   </div>
@@ -18199,18 +18216,7 @@ function showFloatingNotification(msg) {
   setTimeout(() => div.remove(), 5000);
 }
 
-// ⏰ Date & Time
-function updateDateTime() {
-  const now = new Date();
 
-  document.getElementById("liveDate").textContent =
-    "📅 " + now.toDateString();
-
-  document.getElementById("liveTime").textContent =
-    "⏰ " + now.toLocaleTimeString();
-}
-setInterval(updateDateTime, 1000);
-updateDateTime();
 
 
 // 👋 Greeting based on time + username
@@ -18378,13 +18384,14 @@ function setOfflineStatus() {
   el.textContent = "🔴 Offline";
 }
 // ===============================
+// ===============================
 // 🔥 GLOBAL VARIABLES
 // ===============================
 let allStaff = [];
 let payrollListener = null;
 let payrollRefGlobal = null;
 let payrollCallback = null;
-
+let currentAdvance = 0;
 // 🔥 YEAR STATE
 let currentPayrollYear = new Date().getFullYear().toString();
 
@@ -18488,9 +18495,8 @@ document.getElementById("deleteStaffBtn").addEventListener("click", async () => 
   loadStaff();
 });
 
-
 // ===============================
-// 💰 PAY SALARY
+// 💰 PAY SALARY (ADVANCE + OVERPAYMENT + APPROVAL SYSTEM)
 // ===============================
 document.getElementById("paySalaryBtn").addEventListener("click", async () => {
 
@@ -18515,34 +18521,153 @@ document.getElementById("paySalaryBtn").addEventListener("click", async () => {
   const data = snap.val() || {};
 
   const salary = Number(data.salary || staff.salary || 0);
-  const paid = Number(data.paid || 0) + amount;
 
+  const advanceBalance = data.advance?.balance || 0;
+  let remainingAmount = amount;
+  let usedAdvance = 0;
+
+  // ===============================
+  // 💡 ADVANCE LOGIC
+  // ===============================
+  if (advanceBalance > 0) {
+
+    const advConfirm = await Swal.fire({
+      icon: "info",
+      title: "Advance Detected",
+      html: `This staff has an advance of <b>KES ${advanceBalance}</b>. It will be deducted.`,
+      showCancelButton: true,
+      confirmButtonText: "Continue",
+      cancelButtonText: "Cancel Payment"
+    });
+
+    if (!advConfirm.isConfirmed) return;
+
+    if (amount >= advanceBalance) {
+      usedAdvance = advanceBalance;
+      remainingAmount = amount - advanceBalance;
+    } else {
+      usedAdvance = amount;
+      remainingAmount = 0;
+    }
+  }
+
+  const newAdvanceBalance = advanceBalance - usedAdvance;
+
+  // ===============================
+  // ⚠️ OVERPAYMENT DETECTION
+  // ===============================
+  let overpaymentBalance = data.overpayment?.balance || 0;
+  let newOverpayment = 0;
+
+  let netPayment = remainingAmount;
+
+  // recover old overpayment first
+  if (overpaymentBalance > 0) {
+    if (netPayment >= overpaymentBalance) {
+      netPayment = netPayment - overpaymentBalance;
+      overpaymentBalance = 0;
+    } else {
+      overpaymentBalance = overpaymentBalance - netPayment;
+      netPayment = 0;
+    }
+  }
+
+  // detect new overpayment
+  const projectedPaid = Number(data.paid || 0) + netPayment;
+
+  if (projectedPaid > salary) {
+    newOverpayment = projectedPaid - salary;
+    netPayment = netPayment - newOverpayment;
+    overpaymentBalance += newOverpayment;
+  }
+
+  // ===============================
+  // ⚠️ OVERPAYMENT WARNING
+  // ===============================
+  if (newOverpayment > 0) {
+    await Swal.fire({
+      icon: "warning",
+      title: "Overpayment Detected",
+      html: `
+        Salary limit exceeded.<br>
+        Overpayment: <b>KES ${newOverpayment}</b><br>
+        This will be recovered automatically.
+      `
+    });
+  }
+
+  // ===============================
+  // 💰 FINAL CONFIRMATION (HR STYLE)
+  // ===============================
+  const finalConfirm = await Swal.fire({
+    icon: "question",
+    title: "Confirm Salary Payment",
+    html: `
+      Advance Deducted: <b>KES ${usedAdvance}</b><br>
+      Net Payment: <b>KES ${netPayment}</b><br>
+      Overpayment: <b>KES ${newOverpayment}</b>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Approve Payment",
+    cancelButtonText: "Cancel"
+  });
+
+  if (!finalConfirm.isConfirmed) return;
+
+  // ===============================
+  // 💰 UPDATE PAYROLL
+  // ===============================
   await set(payrollRef, {
     staffId,
     name: staff.name,
     role: staff.role,
     salary,
-    paid,
-    balance: salary - paid,
+
+    paid: Number(data.paid || 0) + netPayment,
+
+    advance: {
+      total: data.advance?.total || 0,
+      balance: newAdvanceBalance
+    },
+
+    overpayment: {
+      total: (data.overpayment?.total || 0) + newOverpayment,
+      balance: overpaymentBalance
+    },
+
+    balance: salary - (Number(data.paid || 0) + netPayment),
+
     month: new Date().toLocaleString("default", { month: "long" }),
     lastUpdated: new Date().toLocaleString()
   });
 
+  // ===============================
+  // 📜 HISTORY
+  // ===============================
   await push(historyRef, {
     amount,
     type: "SALARY PAYMENT",
+    advanceDeducted: usedAdvance,
+    netPaid: netPayment,
+    overpayment: newOverpayment,
     reference: "PAY-" + Date.now(),
     date: new Date().toLocaleString()
   });
 
-  Swal.fire("Success", "Salary Paid", "success");
+  Swal.fire({
+    icon: "success",
+    title: "Salary Processed",
+    html: `
+      Advance Deducted: <b>KES ${usedAdvance}</b><br>
+      Net Paid: <b>KES ${netPayment}</b>
+    `
+  });
 
   document.getElementById("salaryAmount").value = "";
 
   loadPayroll();
   smoothScrollTo(document.getElementById("payrollTable"));
 });
-
 
 // ===============================
 // 🚀 OPEN PAYROLL
@@ -18654,6 +18779,10 @@ window.loadPayroll = function () {
             <th>Month</th>
             <th>Salary</th>
             <th>Paid</th>
+            <th>Advance Total</th>
+            <th>Advance Balance</th>
+<th>Overpayment</th>
+<th>Overpayment Balance</th>
             <th>Balance</th>
           </tr>
         </thead>
@@ -18668,6 +18797,11 @@ window.loadPayroll = function () {
 
       const salary = Number(s.salary || 0);
       const paid = Number(s.paid || 0);
+
+      const advanceTotal = s.advance?.total || 0;
+      const advanceBalance = s.advance?.balance || 0;
+const over = s.overpayment?.total || 0;
+const overBal = s.overpayment?.balance || 0;
       const balance = salary - paid;
 
       totalPaid += paid;
@@ -18681,6 +18815,14 @@ window.loadPayroll = function () {
           <td>${s.month || "-"}</td>
           <td>${salary}</td>
           <td>${paid}</td>
+          <td>${advanceTotal}</td>
+          <td style="color:${advanceBalance > 0 ? 'orange' : 'green'};">
+            ${advanceBalance}
+          </td>
+<td>${over}</td>
+<td style="color:${overBal > 0 ? 'red' : 'green'};">
+  ${overBal}
+</td>
           <td style="color:${balance > 0 ? 'red' : 'green'};">
             ${balance}
           </td>
@@ -18692,6 +18834,7 @@ window.loadPayroll = function () {
         <tr style="font-weight:bold;">
           <td colspan="5">TOTAL</td>
           <td>${totalPaid}</td>
+          <td colspan="2"></td>
           <td>${totalBalance}</td>
         </tr>
       </tbody>
@@ -18713,8 +18856,6 @@ window.loadPayroll = function () {
 
   onValue(payrollRef, payrollCallback);
 };
-
-
 // ===============================
 // 📊 LOAD BUTTON
 // ===============================
@@ -19048,6 +19189,11 @@ function openPayslipWindow({ staff, year, data, salary, paid, deductions, netPay
 
           ${row("Basic Salary", salary)}
           ${row("Paid Amount", paid)}
+${row("Salary Advance", data.advance?.balance || 0)}
+${row("Advance Total", data.advance?.total || 0)}
+${row("Advance Balance", data.advance?.balance || 0)}
+${row("Overpayment Total", data.overpayment?.total || 0)}
+${row("Overpayment Balance", data.overpayment?.balance || 0)}
           ${row("NHIF (2%)", deductions.nhif)}
           ${row("NSSF (6%)", deductions.nssf)}
           ${row("PAYE Tax (10%)", deductions.tax)}
@@ -19100,7 +19246,56 @@ function formatMoney(amount) {
   });
 }
 
-// Auto detect connection
+// ===============================
+// 💰 PROFESSIONAL ADVANCE SYSTEM
+// ===============================
+document.getElementById("giveAdvanceBtn").addEventListener("click", async () => {
+
+  const staffId = document.getElementById("staffSelect").value;
+  const amount = Number(document.getElementById("salaryAmount").value);
+  const year = getSelectedYear();
+
+  if (!staffId || !amount || !year) {
+    Swal.fire("Missing Fields", "Select staff and enter amount", "warning");
+    return;
+  }
+
+  const staff = allStaff.find(s => s.id === staffId);
+  if (!staff) return;
+
+  const payrollRef = ref(db, `payroll/${year}/${staffId}`);
+  const historyRef = ref(db, `payroll/${year}/${staffId}/history`);
+
+  const snap = await get(payrollRef);
+  const data = snap.val() || {};
+
+  const currentAdvance = data.advance?.balance || 0;
+  const newTotal = (data.advance?.total || 0) + amount;
+  const newBalance = currentAdvance + amount;
+
+  await update(payrollRef, {
+    advance: {
+      total: newTotal,
+      balance: newBalance
+    },
+    name: staff.name,
+    role: staff.role,
+    staffId
+  });
+
+  await push(historyRef, {
+    amount,
+    type: "ADVANCE GIVEN",
+    reference: "ADV-" + Date.now(),
+    date: new Date().toLocaleString()
+  });
+
+  Swal.fire("Success", "Advance recorded professionally", "success");
+
+  document.getElementById("salaryAmount").value = "";
+
+  loadPayroll();
+});
 window.addEventListener("online", setOnlineStatus);
 window.addEventListener("offline", setOfflineStatus);
 
